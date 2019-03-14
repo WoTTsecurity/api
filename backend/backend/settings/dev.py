@@ -9,6 +9,6 @@ DATABASES = {
     }
 }
 
-COMMON_NAME_PREFIX = 'd.wott.local'
+COMMON_NAME_PREFIX = 'd.wott-dev.local'
 
 INSTALLED_APPS += ['django_extensions']
