@@ -110,7 +110,7 @@ class APIPingTest(TestCase):
             ]
         self.ping_payload = {
             'device_operating_system_version': 'linux',
-            'fqdn': 'test-device0',
+            'fqdn': 'test-device',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
             'scan_info': json.dumps(scan_info)
