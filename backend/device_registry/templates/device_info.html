@@ -106,11 +106,11 @@
               </tr>
               <tr>
                 <th scope="row">Download Certificate</th>
-                <td>N/A</td>
+                <td><a href="{% url 'download-cert' device.pk %}">{{ device.device_id }}.crt</a></td>
               </tr>
               <tr>
                 <th scope="row">Certificate Expires</th>
-                <td>N/A</td>
+                <td>{{ device.get_cert_expiration_date|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>

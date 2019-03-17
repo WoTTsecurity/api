@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F
 from jsonfield import JSONField
+from device_registry import ca_helper
 
 
 class Device(models.Model):
@@ -34,6 +35,12 @@ class Device(models.Model):
 
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
+
+    def get_cert_expiration_date(self):
+        try:
+            return ca_helper.get_certificate_expiration_date(self.certificate)
+        except ValueError:
+            pass
 
     class Meta:
         ordering = ('created',)

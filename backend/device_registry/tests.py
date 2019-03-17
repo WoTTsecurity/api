@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.conf import settings
@@ -8,10 +9,13 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 from device_registry import ca_helper
-from django.test import TestCase
+from django.contrib.auth.models import User
+from django.test import TestCase, RequestFactory
+from django.urls import reverse
 from rest_framework.test import APIRequestFactory
 from .api_views import mtls_ping_view
 from .models import Device, DeviceInfo, PortScan
+from .views import download_cert
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -156,9 +160,33 @@ class APIPingTest(TestCase):
         self.assertJSONEqual(self.ping_payload['scan_info'], portscan.scan_info)
 
 
+TEST_CERT = """-----BEGIN CERTIFICATE-----
+MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
+BAMMCWxvY2FsaG9zdDAeFw0xOTAzMDUyMDE5MjRaFw0xOTA0MDQyMDE5MjRaMBQx
+EjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAOgfhzltW1Bx/PLve7sk228G9FeBQmTVkEwiU1tgagvIzM8fhoeDnXoMVRf5
+GPWZr4h0E4BtDRQUO7NqgW+r3RQMq4nJljTV9f8Om3Owx41BM5M5w5YH75JZzcZ1
+OVBmJRPOG06I3Hk/uQjCGo1YN7ZggAdUmFQqQ03GdstqQhd6UzbV2dPphq+R2npV
+oAjByawBwuxi+NJXxz20dUVkXrrxGgDUKcUn4NPsIUGf9hSHZcDMZ3XQcQQ/ykD9
+i/zeVU6jGnsMOO+YZUguBlq/GKI2fzezfG7fv394oAJP9mV0T8k9ArciTigUehuv
+a8sHA+vrvRXCNbpV8vEQbRh/+0sCAwEAAaM6MDgwFAYDVR0RBA0wC4IJbG9jYWxo
+b3N0MAsGA1UdDwQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDATANBgkqhkiG9w0B
+AQsFAAOCAQEAL+KRDdqbbAFiMROy7eNkbMUj3Dp4S24y5QnGjFl4eSFLWu9UhBT+
+FcElSbo1vKaW5DJi+XG9snyZfqEuknQlBEDTuBlOEqguGpmzYE/+T0wt9zLTByN8
+N44fGr4f9ORj6Y6HJkzdlp+XCDdzHb2+3ienNle6bWlmBpbQaMVrayDxJ5yxldgJ
+czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
+2UZyh8r3qmVWo1jROR98z/J59ytNgMfYTmVI+ClUWKF5OWEOneKTf7dvic0Bqiyb
+1lti7kgwF5QeRU2eEn3VC2F5JreBMpTkeA==
+-----END CERTIFICATE-----
+"""
+
+
 class DeviceModelTest(TestCase):
     def setUp(self):
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            certificate=TEST_CERT
+        )
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
@@ -172,3 +200,15 @@ class DeviceModelTest(TestCase):
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
         self.assertEqual(hw_type, 'Raspberry Pi')
+
+    def test_get_expiration_date(self):
+        exp_date = self.device0.get_cert_expiration_date()
+        self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
+
+    def test_download_cert(self):
+        # url = reverse('download-cert', kwargs={'device_id': self.device0.device_id})
+        url = f'/cert/{self.device0.id}/'
+        request = RequestFactory().get(url)
+        request.user = User.objects.create_user('test')
+        resp = download_cert(request, self.device0.id)
+        self.assertEqual(resp['content-type'], 'application/x-x509-ca-cert')

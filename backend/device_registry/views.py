@@ -85,3 +85,12 @@ class DeviceDetailView(View):
         )
         context = {'device_info': device_info, 'device': device}
         return render(request, 'device_info.html', context)
+
+
+@login_required
+def download_cert(request, device_id):
+    device = get_object_or_404(Device, id=device_id)
+    response = HttpResponse(device.certificate, content_type="application/x-x509-ca-cert")
+    response['Content-Disposition'] = f'inline; filename={device.device_id}.crt'
+    return response
+

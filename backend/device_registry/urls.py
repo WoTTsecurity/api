@@ -61,5 +61,10 @@ if settings.IS_DASH:
             views.DeviceDetailView.as_view(),
             name='device-detail'
         ),
-        path('profile/', views.profile_view, name='profile')
+        path('profile/', views.profile_view, name='profile'),
+        path(
+            'cert/<int:device_id>/',
+            views.download_cert,
+            name='download-cert'
+        ),
     ]
