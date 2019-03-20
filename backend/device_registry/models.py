@@ -130,6 +130,7 @@ class DeviceInfo(models.Model):
 class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
+    firewall_enabled = models.BooleanField(null=True, blank=True)
     scan_info = JSONField()
 
 
