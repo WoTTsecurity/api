@@ -6,6 +6,7 @@ from django.db.models import F, Avg
 from django.utils import timezone
 from jsonfield import JSONField
 from device_registry import ca_helper
+from google.cloud import storage
 
 
 class Device(models.Model):

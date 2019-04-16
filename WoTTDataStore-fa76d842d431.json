@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "wottdatastore",
+  "private_key_id": "fa76d842d4314ae0de19c8a44c3598ac8b7c6788",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEuwIBADANBgkqhkiG9w0BAQEFAASCBKUwggShAgEAAoIBAQC0I521zC58PEt+\nWebz15r4qqUx9SSIDYVvZRFi5FSDmeF79WQ0YYC52fr+Eq+ljhpNhcFgG65idH0V\n25zAgYMjbKiyqX1uhBHJSmrzqNeePjWJETSxz3ERFStgvlfPaTOqv9XvVDFlspH3\na1aiPizA5fswkKfOuCQ89oYHXNXoS1w3hnkdxZL68oO0mozuDakcB9uzoF/hBTOd\nsh9Et8V2OOYlXWNosCUNrdNBF/9rbs6yGgPE+XnrIMeL1mBKY9z2R3K/7pXynIzy\nmUDAFh2h2fkYeMQOO2sKy3nUJu6aF6KrVkgXzzlOkZ4/0inB2Pyx51wT+2g4nWLU\naCY2GlfHAgMBAAECgf9+jxLuSdWvGzkVus4gjVTANBwPX4D61KQb8fLqnuqIxocT\n75w4/TWhzyGU8wVx9bnFtY3ZGaPxY9aSh1ZeYGvMSQxB46uMdc4tafcPkR5imp07\nFFUS2t8G7bmMKetto9ZQ/s438klijqOhmElu6aScWMQIAE6KzqtCOPjpfk/ILijQ\ngGZzrZQD68sF5OCJ3ddBFADIVIMyzU7IfynCMZQIVhETsVdEn3Fue1m9Yuug73PB\n/CUERe3MC0Z/nslqfPezxW9Fy4LpJhO/bmUu01dwJGhn4ITU2JNSXIkZvLD6g4uC\nWQXAu2yMJc+3qBzOkfPGiWqqOk+N9U6PVzo76iECgYEA8NTQR5/Qdu38KUQAhvF7\nIvIF+Tq9rGeaqaSPPfZSRa1pUgaSllIFjbBA05EfRN43Z/8Vl3IC5LEo9bwv87PI\ndt3nsuZ3xnkYRcQvbsb76/3f+8XfOoBq5Zmqn15FnlGkT18Vkd3JOvNEmtBOO+RW\nH/dZRCpq3eYPvSNE1RMIRtkCgYEAv3wyNQ1NMupdXYY10BbNPy9BXhWNyVZVfTi7\nTA2FpD0+dTX3LaErk9ZFq8h03tUikZApvdNyZ5u+G20oJVr3pKcJZGQtzwQ8rr5e\nB1RikdnoJrJR8hL1tf/TRqcJLQSZoO48KNeSn7AEVEiXaGr1uB8LqcxH/AocroeW\nFzLIr58CgYAsdPyl3Cida7062OTIBFfY0Ziss11EMDPq0QfoRkpVtndUvwXcXfPM\nfhbZd1awXd0Yg4w20sMZ+GI5Sq4HbM66sqgM7GJ77uq+JkMjTfQ/UjRAw/w7Tm1t\nSPqoRLzRRvzv8fuHW8vD6BhoA8ANak9Dw2NlI/dqUwfgwFv6gXLrsQKBgBxt0f5y\nZR3EEeyKun6UhBB3cZsIVC6qNLMMszINZ+QEe7tnMbWCkje2vk1My50xw5oc7zWR\nqRCc3NKxmB5DrTSy4AAZp3tuw5umA8vOyXuiAIeOPgBUtEo7GyEIN6KJZk2wURo3\nNzuiJGJnDKOiDa0yXsbs31saHTwEQVJcZdM9AoGBAM/UNijoulqIIy9MfD9zFsG9\nxUbl8lcdTd93Ox6AFiQFgCTMnlhcG5IuY9X5YAaXBGcPabQI0L+2nQC7m9LF7fE3\nI69SY7YJLwHPsQZM+qQignGCUuEfHYJKHN0wujZplUzfrt4JEo07h8bqKij0Ox1K\np+ANfldl73sbLW6JVeFf\n-----END PRIVATE KEY-----\n",
+  "client_email": "wottadmin@wottdatastore.iam.gserviceaccount.com",
+  "client_id": "108426878870164791871",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/wottadmin%40wottdatastore.iam.gserviceaccount.com"
+}

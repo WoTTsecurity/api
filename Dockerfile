@@ -14,6 +14,7 @@ COPY backend ./
 
 ENV CFSSL_SERVER wott-ca
 ENV DJANGO_SETTINGS_MODULE backend.settings.prod
+ENV GOOGLE_APPLICATION_CREDENTIALS="./WoTTDataStore-fa76d842d431.json"
 
 USER nobody
 CMD gunicorn \
