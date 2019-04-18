@@ -1,5 +1,4 @@
 from backend.settings.base import *
-from google.cloud import storage
 
 DEBUG = True
 

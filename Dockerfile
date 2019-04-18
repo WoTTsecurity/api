@@ -8,13 +8,14 @@ RUN apt-get update && \
     apt-get clean
 
 COPY requirements.txt ./
+COPY WoTTDataStore_key.json ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./
 
 ENV CFSSL_SERVER wott-ca
 ENV DJANGO_SETTINGS_MODULE backend.settings.prod
-ENV GOOGLE_APPLICATION_CREDENTIALS="./WoTTDataStore-fa76d842d431.json"
+ENV GOOGLE_APPLICATION_CREDENTIALS ./WoTTDataStore_key.json
 
 USER nobody
 CMD gunicorn \

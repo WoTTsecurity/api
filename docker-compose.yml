@@ -23,6 +23,7 @@ services:
       context: .
     volumes:
       - ./backend:/usr/src/app
+      - ./WoTTDataStore_key.json:/usr/src/app/WoTTDataStore_key.json
     ports:
       - '8000:8000'
     depends_on:

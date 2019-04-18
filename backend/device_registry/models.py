@@ -7,6 +7,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 from device_registry import ca_helper
 from google.cloud import storage
+from google.cloud import datastore
 
 
 class Device(models.Model):
@@ -66,6 +67,10 @@ class Device(models.Model):
         else:
             cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}?format=json'
         return cert_url
+
+    def save(self, *args, **kwargs):
+        data_store_save('Device', self)
+        models.Model.save(self, *args, **kwargs)
 
     class Meta:
         ordering = ('created',)
@@ -134,6 +139,10 @@ class DeviceInfo(models.Model):
         if self.device_manufacturer == 'Raspberry Pi':
             return 'Raspberry Pi'
 
+    def save(self, *args, **kwargs):
+        data_store_save('DeviceInfo', self)
+        models.Model.save(self, *args, **kwargs)
+
 
 class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
@@ -152,10 +161,18 @@ class PortScan(models.Model):
                 score -= 0.3
         return max(round(score, 1), 0)
 
+    def save(self, *args, **kwargs):
+        data_store_save('PortScan', self)
+        models.Model.save(self, *args, **kwargs)
+
 
 class FirewallState(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        data_store_save('FirewallState', self)
+        models.Model.save(self, *args, **kwargs)
 
 
 # Temporary POJO to showcase recommended actions template.
@@ -182,3 +199,19 @@ def get_device_list(user):
 
 def get_avg_trust_score(user):
     return DeviceInfo.objects.filter(device__owner=user).aggregate(Avg('trust_score'))['trust_score__avg']
+
+
+def get_client():
+    return storage.Client()
+
+
+def data_store_save(kind, instance):
+    datastore_client = datastore.Client()
+
+    data_key = datastore_client.key(kind, instance.id)
+
+    entity = datastore.Entity(key=data_key)
+    for field in instance._meta.fields:
+        entity[field.name] = field.value_from_object(instance)
+
+    datastore_client.put(entity)
