@@ -18,12 +18,13 @@ class DataStoreModel(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        logger.warn('name: {} id: {}'.format(self.__class__.__name__, self.id))
-        k = datastore_client.key(self.__class__.__name__, self.id)
-        entity = datastore.Entity(key=k)
-        for field in self._meta.fields:
-            entity[field.name] = field.value_from_object(self)
-        datastore_client.put(entity)
+        if datastore:
+            logger.warn('name: {} id: {}'.format(self.__class__.__name__, self.id))
+            k = datastore_client.key(self.__class__.__name__, self.id)
+            entity = datastore.Entity(key=k)
+            for field in self._meta.fields:
+                entity[field.name] = field.value_from_object(self)
+            datastore_client.put(entity)
 
 
 class Device(DataStoreModel):
