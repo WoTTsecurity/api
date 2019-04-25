@@ -26,7 +26,7 @@ class DataStoreModel(models.Model):
         datastore_client.put(entity)
 
 
-class Device(models.Model):
+class Device(DataStoreModel):
     device_id = models.CharField(
         max_length=128,
         unique=True,
@@ -93,7 +93,7 @@ class Device(models.Model):
         ordering = ('created',)
 
 
-class DeviceInfo(models.Model):
+class DeviceInfo(DataStoreModel):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     device_manufacturer = models.CharField(blank=True, null=True, max_length=128)
     device_model = models.CharField(blank=True, null=True, max_length=128)
