@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from django.conf import settings
 from django.db import models
@@ -6,6 +7,23 @@ from django.db.models import F, Avg
 from django.utils import timezone
 from jsonfield import JSONField
 from device_registry import ca_helper
+from device_registry.datastore_helper import datastore, datastore_client
+
+logger = logging.getLogger(__name__)
+
+
+class DataStoreModel(models.Model):
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        logger.warn('name: {} id: {}'.format(self.__class__.__name__, self.id))
+        k = datastore_client.key(self.__class__.__name__, self.id)
+        entity = datastore.Entity(key=k)
+        for field in self._meta.fields:
+            entity[field.name] = field.value_from_object(self)
+        datastore_client.put(entity)
 
 
 class Device(models.Model):
@@ -139,7 +157,7 @@ class DeviceInfo(models.Model):
             return 'Raspberry Pi'
 
 
-class PortScan(models.Model):
+class PortScan(DataStoreModel):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
     scan_info = JSONField()
@@ -157,7 +175,7 @@ class PortScan(models.Model):
         return max(round(score, 1), 0)
 
 
-class FirewallState(models.Model):
+class FirewallState(DataStoreModel):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
