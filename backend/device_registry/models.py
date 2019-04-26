@@ -17,14 +17,17 @@ class DataStoreModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
         if datastore:
             logger.warn('name: {} id: {}'.format(self.__class__.__name__, self.id))
-            k = datastore_client.key(self.__class__.__name__, self.id)
+            if self.id:
+                k = datastore_client.key(self.__class__.__name__, self.id)
+            else:
+                k = datastore_client.key(self.__class__.__name__)
             entity = datastore.Entity(key=k)
             for field in self._meta.fields:
                 entity[field.name] = field.value_from_object(self)
             datastore_client.put(entity)
+        super().save(*args, **kwargs)
 
 
 class Device(DataStoreModel):
@@ -67,16 +70,6 @@ class Device(DataStoreModel):
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
-    def get_latest_portscan(self):
-        latest = self.portscan_set.order_by('-scan_date')
-        if latest.exists():
-            return latest[0].scan_info
-    
-    def get_latest_fwstate(self):
-        latest = self.firewallstate_set.order_by('-scan_date')
-        if latest.exists():
-            return latest[0].enabled
-
     def get_cert_expiration_date(self):
         try:
             return ca_helper.get_certificate_expiration_date(self.certificate)
@@ -92,6 +85,30 @@ class Device(DataStoreModel):
 
     class Meta:
         ordering = ('created',)
+
+
+class PortScan(DataStoreModel):
+    device = models.OneToOneField(Device, on_delete=models.CASCADE)
+    scan_date = models.DateTimeField(auto_now_add=True)
+    scan_info = JSONField()
+    GOOD_PORTS = [22, 443]
+    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
+
+    def get_score(self):
+        score = 1
+        ports = [port['port'] for port in self.scan_info if port['proto'] == 'tcp']
+        for port in ports:
+            if port in PortScan.GOOD_PORTS:
+                score -= 0.1
+            if port in PortScan.BAD_PORTS:
+                score -= 0.3
+        return max(round(score, 1), 0)
+
+
+class FirewallState(DataStoreModel):
+    device = models.OneToOneField(Device, on_delete=models.CASCADE)
+    enabled = models.BooleanField(null=True, blank=True)
+    scan_date = models.DateTimeField(null=True, auto_now_add=True)
 
 
 class DeviceInfo(DataStoreModel):
@@ -156,30 +173,6 @@ class DeviceInfo(DataStoreModel):
     def get_hardware_type(self):
         if self.device_manufacturer == 'Raspberry Pi':
             return 'Raspberry Pi'
-
-
-class PortScan(DataStoreModel):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
-    scan_date = models.DateTimeField(auto_now_add=True)
-    scan_info = JSONField()
-    GOOD_PORTS = [22, 443]
-    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
-
-    def get_score(self):
-        score = 1
-        ports = [port['port'] for port in self.scan_info if port['proto'] == 'tcp']
-        for port in ports:
-            if port in PortScan.GOOD_PORTS:
-                score -= 0.1
-            if port in PortScan.BAD_PORTS:
-                score -= 0.3
-        return max(round(score, 1), 0)
-
-
-class FirewallState(DataStoreModel):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
-    enabled = models.BooleanField(null=True, blank=True)
-    scan_date = models.DateTimeField(null=True, auto_now_add=True)
 
 
 # Temporary POJO to showcase recommended actions template.
