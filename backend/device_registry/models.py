@@ -3,9 +3,12 @@ from statistics import mean
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Avg
+from django.db.models import F
 from django.utils import timezone
+from django.contrib.auth.models import User
+
 from jsonfield import JSONField
+
 from device_registry import ca_helper
 
 
@@ -179,3 +182,8 @@ def get_device_list(user):
 def get_avg_trust_score(user):
     scores = [p.get_score() for p in PortScan.objects.filter(device__owner=user).all()]
     return mean(scores) if scores else None
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    company_name = models.CharField(blank=True, max_length=128)

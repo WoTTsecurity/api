@@ -8,3 +8,10 @@ class ClaimDeviceForm(forms.Form):
 
 class DeviceCommentsForm(forms.Form):
     comment = forms.CharField()
+
+
+class ProfileForm(forms.Form):
+    email = forms.CharField()
+    first_name = forms.CharField(required=False)
+    last_name = forms.CharField(required=False)
+    company = forms.CharField(required=False)

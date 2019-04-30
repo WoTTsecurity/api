@@ -1,14 +1,13 @@
-from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
-from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse, HttpResponseRedirect
-from device_registry.models import Action, Device, DeviceInfo, FirewallState, PortScan, get_device_list, get_avg_trust_score
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-from profile_page.forms import ProfileForm
-from profile_page.models import Profile
+
+from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, ProfileForm
+from device_registry.models import Action, Device, DeviceInfo, FirewallState, PortScan, get_device_list
+from device_registry.models import get_avg_trust_score, Profile
 
 
 @login_required
