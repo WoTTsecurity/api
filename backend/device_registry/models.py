@@ -24,7 +24,6 @@ def get_bootstrap_color(val):
 
 
 class Tag(tagulous.models.TagModel):
-
     class TagMeta:
         # Tag options
         initial = ""
@@ -179,7 +178,7 @@ class Device(models.Model):
 
     @classmethod
     def calculate_trust_score(cls, **kwargs):
-        return sum([v*cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
+        return sum([v * cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
@@ -265,7 +264,7 @@ class DeviceInfo(models.Model):
             logins = self.logins
             if '' in logins:
                 logins['<unknown>'] = self.logins['']
-                del(logins[''])
+                del (logins[''])
             return yaml.dump(logins)
         return "none"
 
@@ -405,7 +404,12 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-
+    HARDWARE_ALL_DEVICES = 1
+    HARDWARE_RASPBERRY_PI = 2
+    HARDWARE_CHOICES = (
+        (HARDWARE_ALL_DEVICES, 'All devices'),
+        (HARDWARE_RASPBERRY_PI, 'Raspberry Pi')
+    )
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
         max_length=64,
@@ -421,6 +425,7 @@ class Credential(models.Model):
         validators=[
             validators.LinuxUserNameValidator()
         ])
+    hardware = models.PositiveSmallIntegerField(default=HARDWARE_ALL_DEVICES, choices=HARDWARE_CHOICES)
 
     class Meta:
         unique_together = ['owner', 'key', 'name', 'linux_user']
@@ -429,6 +434,10 @@ class Credential(models.Model):
 
     def __str__(self):
         return f'{self.name}: {self.key}={self.value}'
+
+    @property
+    def hardware_str(self):
+        return self.get_hardware_display()
 
     def clean_name(self):
         return self.cleaned_data["name"].lower()

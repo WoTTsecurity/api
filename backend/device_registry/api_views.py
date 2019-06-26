@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -16,13 +17,13 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
+from tagulous.views import autocomplete
 
 from device_registry import ca_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
-from tagulous.views import autocomplete, login_required
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +229,7 @@ def is_mtls_authenticated(request):
     matchObj = re.match(
         r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
         request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
-        re.M|re.I
+        re.M | re.I
     )
     if not matchObj:
         logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
@@ -441,6 +442,8 @@ def mtls_creds_view(request, format=None):
     device = Device.objects.get(device_id=device_id)
     if device.owner:
         qs = device.owner.credentials.filter(tags__in=device.tags.tags)
+        if device.deviceinfo.device_manufacturer != 'Raspberry Pi':
+            qs = qs.filter(hardware=Credential.HARDWARE_ALL_DEVICES)
     else:
         qs = Credential.objects.none()
     serializer = CredentialsListSerializer(qs, many=True)
@@ -480,27 +483,19 @@ class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
 class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
     serializer_class = CredentialSerializer
 
-    def perform_update(self, serializer):
-        """
-        overwrite default 'perform_update' method in order to replace tags to tag field
-        """
-        instance = serializer.save()
-        tags = [
-            tag['name'] for tag in serializer.initial_data['tags']
-        ]
-        instance.tags.set(*tags)
-
     def update(self, request, *args, **kwargs):
         """
-        Overwritten default `update` method in order to catch unique constraint violation.
+        Overwritten the default `update` method in order to catch unique constraint violation.
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
-                                     name=serializer.validated_data['name']).exclude(pk=instance.pk) .exists():
-            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
+        if Credential.objects.filter(
+                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                linux_user=serializer.validated_data['linux_user']).exclude(pk=instance.pk).exists():
+            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+                            status=status.HTTP_400_BAD_REQUEST)
         self.perform_update(serializer)
 
         if getattr(instance, '_prefetched_objects_cache', None):
@@ -510,26 +505,38 @@ class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
 
         return Response(serializer.data)
 
+    def perform_update(self, serializer):
+        """
+        Overwrite the default 'perform_update' method in order to properly handle tags received as values.
+        """
+        instance = serializer.save()
+        tags = [
+            tag['name'] for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.set(*tags)
+
 
 class CreateCredentialView(CreateAPIView):
     serializer_class = CredentialSerializer
 
     def create(self, request, *args, **kwargs):
         """
-        Overwritten default `create` method in order to catch unique constraint violation.
+        Overwritten the default `create` method in order to catch unique constraint violation.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
-                                     name=serializer.validated_data['name']).exists():
-            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
+        if Credential.objects.filter(
+                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                linux_user=serializer.validated_data['linux_user']).exists():
+            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+                            status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         """
-        overwrite default 'perform_create' method in order to add tags to tag field
+        Overwrite the default 'perform_create' method in order to properly handle tags received as values.
         """
         instance = serializer.save(owner=self.request.user)
         tags = [
@@ -565,4 +572,3 @@ def autocomplete_tags(request):
         Tag.objects.filter_or_initial(device__owner=request.user).distinct() |
         Tag.objects.filter_or_initial(credential__owner=request.user).distinct()
     )
-

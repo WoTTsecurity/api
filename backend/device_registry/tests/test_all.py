@@ -461,9 +461,11 @@ class DeviceModelTest(TestCase):
 
     def test_trust_score(self):
         all_good_except_port_score = sum(Device.COEFFICIENTS.values()) - Device.COEFFICIENTS['port_score']
-        self.assertEqual(self.device0.trust_score, (all_good_except_port_score + 0.6 * Device.COEFFICIENTS['port_score']) /
+        self.assertEqual(self.device0.trust_score,
+                         (all_good_except_port_score + 0.6 * Device.COEFFICIENTS['port_score']) /
                          sum(Device.COEFFICIENTS.values()))
-        self.assertEqual(self.device1.trust_score, (all_good_except_port_score + 0.7 * Device.COEFFICIENTS['port_score']) /
+        self.assertEqual(self.device1.trust_score,
+                         (all_good_except_port_score + 0.7 * Device.COEFFICIENTS['port_score']) /
                          sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
@@ -701,11 +703,11 @@ class APICredsTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
                                                     value='as9dfyaoiufhoasdfjh', tags='tag1',
-                                                    linux_user='nobody')
+                                                    linux_user='nobody', hardware=Credential.HARDWARE_RASPBERRY_PI)
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
-                                                    value='iuoiuoifpojoijccm', tags='tag2')
-        self.tag1_pk = self.credential.tags.tags[0].pk
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1')
+                                                     value='iuoiuoifpojoijccm', tags='tag2')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.deviceinfo = DeviceInfo.objects.create(device=self.device)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -719,10 +721,10 @@ class APICredsTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
-                             [{
-                                 'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
-                                  'pk': self.credential.pk, 'tags_data': [{'name': 'tag1', 'pk': self.tag1_pk}],
-                             }])
+                             [{'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
+                               'pk': self.credential2.pk,
+                               'tags_data': [{'name': 'tag2', 'pk': self.credential2.tags.tags[0].pk}],
+                               'hardware_str': 'All devices', 'hardware': 1}])
 
     def test_get_revoked_device(self):
         Device.objects.create(device_id='device1.d.wott-dev.local')
@@ -737,6 +739,26 @@ class APICredsTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(), [])
+
+    def test_get_limited_by_hardware(self):
+        self.deviceinfo.device_manufacturer = 'Raspberry Pi'
+        self.deviceinfo.save(update_fields=['device_manufacturer'])
+        response = self.client.get(
+            self.url,
+            **self.headers,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(),
+                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                               'pk': self.credential.pk,
+                               'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}],
+                               'hardware_str': 'Raspberry Pi', 'hardware': 2},
+                              {'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
+                               'pk': self.credential2.pk,
+                               'tags_data': [{'name': 'tag2', 'pk': self.credential2.tags.tags[0].pk}],
+                               'hardware_str': 'All devices', 'hardware': 1}
+                              ])
 
 
 class APIIsClaimedTest(APITestCase):
