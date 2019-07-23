@@ -38,6 +38,10 @@ else:
     datastore_client = None
 
 
+def get_client_ip(request):
+    return request.META.get('HTTP_X_REAL_IP') or request.META.get('REMOTE_ADDR')
+
+
 class MtlsPingView(APIView):
     """Endpoint for sending a heartbeat."""
     permission_classes = [AllowAny]
@@ -45,8 +49,9 @@ class MtlsPingView(APIView):
 
     def get(self, request, *args, **kwargs):
         device = Device.objects.get(device_id=request.device_id)
+        device.last_external_ip_address = get_client_ip(request)
         device.last_ping = timezone.now()
-        device.save(update_fields=['last_ping'])
+        device.save(update_fields=['last_ping', 'last_external_ip_address'])
         portscan_object, _ = PortScan.objects.get_or_create(device=device)
         firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
         block_networks = portscan_object.block_networks.copy()
@@ -58,9 +63,10 @@ class MtlsPingView(APIView):
     def post(self, request, *args, **kwargs):
         data = request.data
         device = Device.objects.get(device_id=request.device_id)
+        device.last_external_ip_address = get_client_ip(request)
         device.last_ping = timezone.now()
         device.agent_version = data.get('agent_version')
-        device.save(update_fields=['last_ping', 'agent_version'])
+        device.save(update_fields=['last_ping', 'agent_version', 'last_external_ip_address'])
 
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
@@ -130,8 +136,12 @@ class MtlsRenewCertView(APIView):
 
         certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
 
-        serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
-                        last_ping=timezone.now(), claim_token=uuid.uuid4(), fallback_token=uuid.uuid4())
+        serializer.save(certificate=signed_certificate,
+                        certificate_expires=certificate_expires,
+                        last_ping=timezone.now(),
+                        last_external_ip_address=get_client_ip(request),
+                        claim_token=uuid.uuid4(),
+                        fallback_token=uuid.uuid4())
 
         device_info, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
@@ -249,8 +259,12 @@ class RenewExpiredCertView(UpdateAPIView):
         certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
         claim_token = uuid.uuid4()
         fallback_token = uuid.uuid4()
-        serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
-                        last_ping=timezone.now(), claim_token=claim_token, fallback_token=fallback_token)
+        serializer.save(certificate=signed_certificate,
+                        certificate_expires=certificate_expires,
+                        last_ping=timezone.now(),
+                        last_external_ip_address=get_client_ip(request),
+                        claim_token=claim_token,
+                        fallback_token=fallback_token)
 
         device_info, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
@@ -293,6 +307,7 @@ class SignNewDeviceView(CreateAPIView):
         device.certificate = signed_certificate
         device.certificate_expires = certificate_expires
         device.last_ping = timezone.now()
+        device.last_external_ip_address = get_client_ip(request)
         device.claim_token = uuid.uuid4()
         device.fallback_token = uuid.uuid4()
         device.save()

@@ -56,6 +56,7 @@ class Device(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
     last_ping = models.DateTimeField(blank=True, null=True)
+    last_external_ip_address = models.TextField(blank=True, null=True, max_length=45)
     certificate = models.TextField(blank=True, null=True)
     certificate_csr = models.TextField(blank=True, null=True)
     certificate_expires = models.DateTimeField(blank=True, null=True)
