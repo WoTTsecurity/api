@@ -21,3 +21,4 @@ requests==2.21.0
 sentry-sdk==0.7.14
 sh==1.12.14
 django-tagulous==0.14.0
+django-webpack-loader

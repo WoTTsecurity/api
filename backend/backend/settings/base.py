@@ -66,7 +66,8 @@ INSTALLED_APPS = [
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
-    'bootstrap4'
+    'bootstrap4',
+    'webpack_loader'
 ]
 
 MIDDLEWARE = [
@@ -210,4 +211,15 @@ SERIALIZATION_MODULES = {
     'json':   'tagulous.serializers.json',
     'python': 'tagulous.serializers.python',
     'yaml':   'tagulous.serializers.pyyaml',
+}
+
+#webpack loader
+WEBPACK_LOADER = {
+    'DEFAULT': {
+        'CACHE': not DEBUG,
+        'BUNDLE_DIR_NAME': 'webpack_bundles/',
+        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
+        'POLL_INTERVAL': 0.1,
+        'TIMEOUT': None
+    }
 }
