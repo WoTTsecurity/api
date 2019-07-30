@@ -1,16 +1,29 @@
-var path = require('path');
-var webpack = require('webpack');
-var BundleTracker = require('webpack-bundle-tracker');
+var path = require("path")
+var webpack = require('webpack')
+var BundleTracker = require('webpack-bundle-tracker')
 
 module.exports = {
   context: __dirname,
-  entry: './static/',
+
+  entry: './static/js/index',
+
   output: {
-      path: path.resolve('./webpack_bundles/'),
-      filename: "[name]-[hash].js"
+      path: path.resolve('./static/bundles/'),
+      filename: "[name]-[hash].js",
   },
 
   plugins: [
-    new BundleTracker({filename: './webpack-stats.json'})
-  ]
+    new BundleTracker({filename: './webpack-stats.json'}),
+  ],
+
+  module: {
+    loaders: [
+      { test: /\.jsx?$/, exclude: /node_modules/, loader: 'babel-loader'}, 
+    ],
+  },
+
+  resolve: {
+    modulesDirectories: ['node_modules', 'bower_components'],
+    extensions: ['', '.js', '.jsx']
+  },
 }
