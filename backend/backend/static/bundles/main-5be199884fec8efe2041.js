@@ -44,16 +44,16 @@
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	'use strict';
+	__webpack_require__(1);
+	__webpack_require__(483);
+	__webpack_require__(484);
+	__webpack_require__(485);
+	__webpack_require__(486);
+	__webpack_require__(487);
+	__webpack_require__(488);
+	__webpack_require__(619);
+	module.exports = __webpack_require__(620);
 
-	var core_js = __webpack_require__(1);
-	var jquery = __webpack_require__(483);
-	var jquery_validation = __webpack_require__(484);
-	var classnames = __webpack_require__(485);
-	var simplebar = __webpack_require__(486);
-	var popper = __webpack_require__(487);
-	var daterangepicker = __webpack_require__(488);
-	var fullcalendar = __webpack_require__(619);
 
 /***/ }),
 /* 1 */
@@ -63364,6 +63364,14 @@
 	/***/ })
 	/******/ ]);
 	});
+
+/***/ }),
+/* 620 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	window.jQuery=$;
 
 /***/ })
 /******/ ]);

@@ -4,8 +4,7 @@ var BundleTracker = require('webpack-bundle-tracker')
 
 module.exports = {
   context: __dirname,
-
-  entry: './static/js/index',
+  entry:[ 'core-js','jquery','jquery-validation','classnames','simplebar','popper.js','daterangepicker','fullcalendar','./static/js/index'],
 
   output: {
       path: path.resolve('./static/bundles/'),

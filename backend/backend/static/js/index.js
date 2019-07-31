@@ -1,8 +1,1 @@
-var core_js=require('core-js')
-var jquery=require('jquery')
-var jquery_validation=require('jquery-validation')
-var classnames=require('classnames')
-var simplebar=require('simplebar')
-var popper=require('popper.js')
-var daterangepicker=require('daterangepicker')
-var fullcalendar=require('fullcalendar')
+window.jQuery=$;
