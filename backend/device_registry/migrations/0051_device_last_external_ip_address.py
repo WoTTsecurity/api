@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='device',
             name='last_external_ip_address',
-            field=models.TextField(blank=True, max_length=45, null=True),
+            field=models.GenericIPAddressField(null=True)
         ),
     ]
