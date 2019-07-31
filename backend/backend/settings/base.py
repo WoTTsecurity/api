@@ -16,6 +16,7 @@ import re
 
 from netaddr import IPNetwork, AddrFormatError
 
+
 def check_ip_range(ipr):
     try:
         _ = IPNetwork(ipr)
@@ -142,7 +143,6 @@ REST_FRAMEWORK = {
 CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
-
 # SMTP
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.sendgrid.net'
@@ -207,15 +207,19 @@ if SENTRY_DSN:
 
 # 'tagulous'
 SERIALIZATION_MODULES = {
-    'xml':    'tagulous.serializers.xml_serializer',
-    'json':   'tagulous.serializers.json',
+    'xml': 'tagulous.serializers.xml_serializer',
+    'json': 'tagulous.serializers.json',
     'python': 'tagulous.serializers.python',
-    'yaml':   'tagulous.serializers.pyyaml',
+    'yaml': 'tagulous.serializers.pyyaml',
 }
+
+# `django-registration-redux` 3rd party app settings.
+INCLUDE_REGISTER_URL = False
 
 #webpack loader
 WEBPACK_LOADER = {
     'DEFAULT': {
+        'CACHE': True,
         'BUNDLE_DIR_NAME': 'bundles/',
         'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
     }
