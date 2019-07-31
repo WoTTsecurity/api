@@ -804,10 +804,10 @@ class MtlsPingViewTest(APITestCase):
         self.assertDictEqual(firewall_rules, firewall_state.rules)
 
     def test_ping_stores_ip(self):
-        '''
+        """
         Check that the external IP address passed to Django in either REMOTE_ADDR
         or X-Real-IP headers gets stored as last_external_ip_address.
-        '''
+        """
         external_ip = '10.10.10.10'
         headers = self.headers.copy()
         headers['REMOTE_ADDR'] = external_ip

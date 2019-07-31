@@ -39,6 +39,12 @@ else:
 
 
 def get_client_ip(request):
+    """
+    Get client external IP address passed to Django in either REMOTE_ADDR or
+    X-Real-IP (set by nginx-ingress) HTTP headers or None if both are unset.
+    :param request: HttpRequest
+    :return: str or None
+    """
     return request.META.get('HTTP_X_REAL_IP') or request.META.get('REMOTE_ADDR')
 
 
