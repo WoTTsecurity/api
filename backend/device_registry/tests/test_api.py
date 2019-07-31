@@ -803,6 +803,26 @@ class MtlsPingViewTest(APITestCase):
         self.assertListEqual(scan_info, portscan.scan_info)
         self.assertDictEqual(firewall_rules, firewall_state.rules)
 
+    def test_ping_stores_ip(self):
+        '''
+        Check that the external IP address passed to Django in either REMOTE_ADDR
+        or X-Real-IP headers gets stored as last_external_ip_address.
+        '''
+        external_ip = '10.10.10.10'
+        headers = self.headers.copy()
+        headers['REMOTE_ADDR'] = external_ip
+        self.client.post(self.url, self.ping_payload, **headers)
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertEqual(external_ip, device.last_external_ip_address)
+
+        external_ip = '10.10.20.20'
+        headers = self.headers.copy()
+        headers['HTTP_X_REAL_IP'] = external_ip
+        self.client.post(self.url, self.ping_payload, **headers)
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertEqual(external_ip, device.last_external_ip_address)
+
+
 
 class DeviceEnrollView(APITestCase):
     def setUp(self):
