@@ -812,15 +812,15 @@ class MtlsPingViewTest(APITestCase):
         headers = self.headers.copy()
         headers['REMOTE_ADDR'] = external_ip
         self.client.post(self.url, self.ping_payload, **headers)
-        device = Device.objects.get(pk=self.device.pk)
-        self.assertEqual(external_ip, device.last_external_ip_address)
+        self.device.refresh_from_db()
+        self.assertEqual(external_ip, self.device.last_external_ip_address)
 
         external_ip = '10.10.20.20'
         headers = self.headers.copy()
         headers['HTTP_X_REAL_IP'] = external_ip
         self.client.post(self.url, self.ping_payload, **headers)
-        device = Device.objects.get(pk=self.device.pk)
-        self.assertEqual(external_ip, device.last_external_ip_address)
+        self.device.refresh_from_db()
+        self.assertEqual(external_ip, self.device.last_external_ip_address)
 
 
 
