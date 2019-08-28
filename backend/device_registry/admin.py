@@ -13,6 +13,9 @@ class DeviceAdmin(admin.ModelAdmin):
         'last_ping',
         'owner',
         'claimed',
+        # 'scan_date',
+        # 'policy',
+        # 'rules'
     ]
 
     list_filter = (
@@ -21,6 +24,9 @@ class DeviceAdmin(admin.ModelAdmin):
 
     ordering = ('last_ping',)
     readonly_fields = ('claim_token', 'fallback_token')
+    formfield_overrides = {
+        JSONField: {'widget': JSONEditorWidget},
+    }
 
 
 @admin.register(DeviceInfo)
@@ -48,17 +54,6 @@ class PortscanAdmin(admin.ModelAdmin):
     formfield_overrides = {
         JSONField: {'widget': JSONEditorWidget},
     }
-
-    ordering = ('scan_date',)
-
-
-@admin.register(FirewallState)
-class FirewallStateAdmin(admin.ModelAdmin):
-    list_display = [
-        'device',
-        'scan_date',
-        'policy'
-    ]
 
     ordering = ('scan_date',)
 

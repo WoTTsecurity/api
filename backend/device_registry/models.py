@@ -66,6 +66,27 @@ class Device(models.Model):
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
 
+    # FirewallState:
+    POLICY_ENABLED_ALLOW = 1
+    POLICY_ENABLED_BLOCK = 2
+    POLICY_CHOICES = (
+        (POLICY_ENABLED_ALLOW, 'Allow by default'),
+        (POLICY_ENABLED_BLOCK, 'Block by default')
+    )
+    scan_date = models.DateTimeField(null=True, auto_now_add=True)
+    rules = JSONField(blank=True, default=dict)
+    policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
+
+    @property
+    def get_firewallstate(self):
+        if self.policy == Device.POLICY_ENABLED_ALLOW and not self.rules and self.scan_date is None:
+            return None
+        return {
+            'policy': self.policy, 'rules': self.rules, 'scan_date': self.scan_date,
+            # properties:
+            'beautified_rules': self.beautified_rules, 'policy_string': self.policy_string,
+            'ports_field_name': self.ports_field_name}
+    # Device:
     @property
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
@@ -107,16 +128,16 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        if self.firewallstate.policy == FirewallState.POLICY_ENABLED_ALLOW:
+        if self.policy == Device.POLICY_ENABLED_ALLOW:
             telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
                 portscan__block_ports__contains=[[23]]).exists()
-        elif self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK:
+        elif self.policy == Device.POLICY_ENABLED_BLOCK:
             telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}],
                                                    portscan__block_ports__contains=[[23]]).exists()
         else:
             raise NotImplementedError
         return sum((self.deviceinfo.default_password is True,
-                    self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK, telnet))
+                    self.policy != Device.POLICY_ENABLED_BLOCK, telnet))
 
     @property
     def has_actions(self):
@@ -135,7 +156,8 @@ class Device(models.Model):
     MIN_FAILED_LOGINS = 1
 
     def get_trust_score(self):
-        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+        # if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'portscan'):
             return None
 
         selinux = self.deviceinfo.selinux_state
@@ -154,7 +176,7 @@ class Device(models.Model):
 
         return self.calculate_trust_score(
             app_armor_enabled=zero_if_none(self.deviceinfo.app_armor_enabled),
-            firewall_enabled=self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK,
+            firewall_enabled=self.policy == Device.POLICY_ENABLED_BLOCK,
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
@@ -190,6 +212,30 @@ class Device(models.Model):
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
 
+    # FirewallState:
+    @property
+    def policy_string(self):
+        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+            return 'allow'
+        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+            return 'block'
+        else:
+            raise NotImplementedError
+
+    @property
+    def ports_field_name(self):
+        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+            return 'block_ports'
+        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+            return 'allow_ports'
+        else:
+            raise NotImplementedError
+
+    @property
+    def beautified_rules(self):
+        return yaml.dump(self.rules) if self.rules else "none"
+
+    # Device:
     def save(self, *args, **kwargs):
         with transaction.atomic():
             self.trust_score = self.get_trust_score()

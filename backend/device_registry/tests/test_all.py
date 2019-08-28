@@ -171,7 +171,8 @@ class DeviceModelTest(TestCase):
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
-            logins={'pi': {'failed': 1, 'success': 1}}
+            logins={'pi': {'failed': 1, 'success': 1}},
+            policy=Device.POLICY_ENABLED_BLOCK
         )
         self.device_info1 = DeviceInfo.objects.create(
             device=self.device1,
@@ -179,7 +180,8 @@ class DeviceModelTest(TestCase):
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
-            logins={'pi': {'failed': 1, 'success': 1}}
+            logins={'pi': {'failed': 1, 'success': 1}},
+            policy=Device.POLICY_ENABLED_BLOCK
         )
 
         portscan0 = [
@@ -193,8 +195,8 @@ class DeviceModelTest(TestCase):
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
 
-        self.firewall0 = FirewallState.objects.create(device=self.device0, policy=FirewallState.POLICY_ENABLED_BLOCK)
-        self.firewall1 = FirewallState.objects.create(device=self.device1, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        # self.firewall0 = FirewallState.objects.create(device=self.device0, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        # self.firewall1 = FirewallState.objects.create(device=self.device1, policy=FirewallState.POLICY_ENABLED_BLOCK)
 
         self.user4 = User.objects.create_user('test-fixing-issues')
         self.device4 = Device.objects.create(
@@ -209,7 +211,8 @@ class DeviceModelTest(TestCase):
             selinux_state={'enabled': False},
             app_armor_enabled=False,
             default_password=True,
-            logins={'pi': {'failed': 1, 'success': 1}}
+            logins={'pi': {'failed': 1, 'success': 1}},
+            policy=FirewallState.POLICY_ENABLED_ALLOW
         )
         self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
             {"host": "0.0.0.0", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4},
@@ -219,7 +222,7 @@ class DeviceModelTest(TestCase):
             {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ])
-        self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
+        # self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
     def test_fixed_issues(self):
         self.device4.save(update_fields=['trust_score'])
@@ -234,11 +237,12 @@ class DeviceModelTest(TestCase):
             {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ]
         self.portscan4.save()
-        self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
-        self.firewall4.save()
+        # self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
+        # self.firewall4.save()
         self.device_info4.default_password = False
         self.device_info4.save()
-        self.device4.save(update_fields=['trust_score'])
+        self.device4.policy = Device.POLICY_ENABLED_BLOCK
+        self.device4.save(update_fields=['trust_score','policy'])
 
         # result: trust score high
         self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
@@ -313,8 +317,8 @@ class FormsTests(TestCase):
 
     def test_ports_form(self):
         ports_form_data = self.portscan.ports_form_data()
-        firewallstate = FirewallState.objects.create(device=self.device)
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': firewallstate.policy}
+        # firewallstate = FirewallState.objects.create(device=self.device)
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.device.policy}
         form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
@@ -335,7 +339,7 @@ class ActionsViewTests(TestCase):
                                             certificate=TEST_CERT)
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
                                                 netstat=OPEN_CONNECTIONS_INFO)
-        self.firewall = FirewallState.objects.create(device=self.device)
+        # self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         self.url = reverse('actions')
 
@@ -365,7 +369,8 @@ class DeviceDetailViewTests(TestCase):
         self.user.save()
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
-            certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc))
+            certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc),
+            policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.deviceinfo = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -376,7 +381,7 @@ class DeviceDetailViewTests(TestCase):
         )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
-        self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        # self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})

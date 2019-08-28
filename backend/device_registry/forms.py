@@ -39,7 +39,7 @@ class DeviceAttrsForm(forms.ModelForm):
 
 
 class PortsForm(forms.Form):
-    policy = forms.ChoiceField(choices=FirewallState.POLICY_CHOICES,
+    policy = forms.ChoiceField(choices=Device.POLICY_CHOICES,
                                widget=forms.Select(attrs={'class': 'form-control'}))
     open_ports = forms.MultipleChoiceField(
         required=False,
