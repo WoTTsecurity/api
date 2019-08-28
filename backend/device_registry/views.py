@@ -115,10 +115,11 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
+        # try:
+        #     context['portscan'] = self.object.portscan
+        # except PortScan.DoesNotExist:
+        #     context['portscan'] = None
+        context['portscan'] = self.object.get_portscan
         # try:
         context['firewall'] = [self.object.policy, self.object.rules, self.object.scan_date,
                                # properties:
@@ -157,10 +158,11 @@ class DeviceDetailSoftwareView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
+        context['portscan'] = self.object.get_portscan
+        # try:
+        #     context['portscan'] = self.object.portscan
+        # except PortScan.DoesNotExist:
+        #     context['portscan'] = None
         context['firewall'] = self.object.get_firewallstate
         # try:
         #     context['firewall'] = self.object.firewallstate
@@ -179,20 +181,21 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
-        else:
-            ports_form_data = self.object.portscan.ports_form_data()
-            context['ports_choices'] = bool(ports_form_data[0])
-            context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
-                                              initial={'open_ports': ports_form_data[1],
-                                                       'policy': self.object.policy})
-            connections_form_data = self.object.portscan.connections_form_data()
-            context['connections_choices'] = bool(connections_form_data[0])
-            context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
-                                                          initial={'open_connections': connections_form_data[1]})
+        context['portscan'] = self.object.get_portscan
+        # try:
+        #     context['portscan'] = self.object.portscan
+        # except PortScan.DoesNotExist:
+        #     context['portscan'] = None
+        # else:
+        ports_form_data = self.object.ports_form_data()
+        context['ports_choices'] = bool(ports_form_data[0])
+        context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
+                                          initial={'open_ports': ports_form_data[1],
+                                                   'policy': self.object.policy})
+        connections_form_data = self.object.connections_form_data()
+        context['connections_choices'] = bool(connections_form_data[0])
+        context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
+                                                      initial={'open_connections': connections_form_data[1]})
         context['firewall'] = self.object.get_firewallstate
         # try:
         #     context['firewall'] = self.object.firewallstate
@@ -202,33 +205,33 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        portscan = self.object.portscan
+        #portscan = self.object.portscan
         if 'is_ports_form' in request.POST:
-            ports_form_data = self.object.portscan.ports_form_data()
+            ports_form_data = self.object.ports_form_data()
             form = PortsForm(request.POST, ports_choices=ports_form_data[0])
             if form.is_valid():
                 out_data = []
                 for element in form.cleaned_data['open_ports']:
                     port_record_index = int(element)
                     out_data.append(ports_form_data[2][port_record_index])
-                portscan.block_ports = out_data
+                self.object.block_ports = out_data
                 self.object.policy = form.cleaned_data['policy']
                 with transaction.atomic():
-                    portscan.save(update_fields=['block_ports'])
+                    # portscan.save(update_fields=['block_ports'])
                     # firewallstate.save(update_fields=['policy'])
-                    self.object.save(update_fields=['trust_score', 'policy'])
+                    self.object.save(update_fields=['trust_score', 'policy', 'block_ports'])
 
         elif 'is_connections_form' in request.POST:
-            connections_form_data = self.object.portscan.connections_form_data()
+            connections_form_data = self.object.connections_form_data()
             form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
             if form.is_valid():
                 out_data = []
                 for element in form.cleaned_data['open_connections']:
                     connection_record_index = int(element)
                     out_data.append(connections_form_data[2][connection_record_index])
-                portscan.block_networks = out_data
-                portscan.save(update_fields=['block_networks'])
-                self.object.save(update_fields=['trust_score'])
+                self.object.block_networks = out_data
+                # portscan.save(update_fields=['block_networks'])
+                self.object.save(update_fields=['trust_score', 'block_networks'])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
@@ -242,10 +245,11 @@ class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
+        context['portscan'] = self.object.get_portscan
+        # try:
+        #     context['portscan'] = self.object.portscan
+        # except PortScan.DoesNotExist:
+        #     context['portscan'] = None
         context['firewall'] = self.object.get_firewallstate
         # try:
         #     context['firewall'] = self.object.firewallstate
@@ -264,10 +268,11 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
+        # try:
+        #     context['portscan'] = self.object.portscan
+        # except PortScan.DoesNotExist:
+        #     context['portscan'] = None
+        context['portscan'] = self.object.get_portscan
         context['firewall'] = self.object.get_firewallstate
         # try:
         #     context['firewall'] = self.object.firewallstate
@@ -286,10 +291,11 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if hasattr(self.object, 'portscan'):
-            context['portscan'] = self.object.portscan
-        else:
-            context['portscan'] = None
+        context['portscan'] = self.object.get_portscan
+        # if hasattr(self.object, 'portscan'):
+        #     context['portscan'] = self.object.portscan
+        # else:
+        #     context['portscan'] = None
         context['firewall'] = self.object.get_firewallstate
         # if hasattr(self.object, 'firewallstate'):
         #     context['firewall'] = self.object.firewallstate
@@ -403,11 +409,9 @@ def actions_view(request, device_pk=None):
     #     firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK, portscan__scan_info__contains=[{'port': 23}],
     #     portscan__block_ports__contains=[[23]])
     qs1 = request.user.devices.filter(
-        policy=Device.POLICY_ENABLED_ALLOW, portscan__scan_info__contains=[{'port': 23}]).exclude(
-        portscan__block_ports__contains=[[23]])
+        policy=Device.POLICY_ENABLED_ALLOW, scan_info__contains=[{'port': 23}]).exclude(block_ports__contains=[[23]])
     qs2 = request.user.devices.filter(
-        policy=Device.POLICY_ENABLED_BLOCK, portscan__scan_info__contains=[{'port': 23}],
-        portscan__block_ports__contains=[[23]])
+        policy=Device.POLICY_ENABLED_BLOCK, scan_info__contains=[{'port': 23}], block_ports__contains=[[23]])
     enabled_telnet_devices = qs1 | qs2
     if device_pk is not None:
         enabled_telnet_devices = enabled_telnet_devices.filter(pk=device_pk)

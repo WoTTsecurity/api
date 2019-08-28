@@ -54,12 +54,12 @@ class MtlsPingView(APIView):
         device = Device.objects.get(device_id=request.device_id)
         device.last_ping = timezone.now()
         device.save(update_fields=['last_ping'])
-        portscan_object, _ = PortScan.objects.get_or_create(device=device)
+        # portscan_object, _ = PortScan.objects.get_or_create(device=device)
         # firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
-        block_networks = portscan_object.block_networks.copy()
+        block_networks = device.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
         return Response({'policy': device.policy_string,
-                         device.ports_field_name: portscan_object.block_ports,
+                         device.ports_field_name: device.block_ports,
                          'block_networks': block_networks})
 
     def post(self, request, *args, **kwargs):
@@ -83,7 +83,7 @@ class MtlsPingView(APIView):
         device_info_object.default_password = data.get('default_password')
         device_info_object.save()
 
-        portscan_object, _ = PortScan.objects.get_or_create(device=device)
+        #portscan_object, _ = PortScan.objects.get_or_create(device=device)
         scan_info = data.get('scan_info', [])
         if isinstance(scan_info, str):
             scan_info = json.loads(scan_info)
@@ -92,9 +92,8 @@ class MtlsPingView(APIView):
             if 'ip_version' not in record:
                 ipaddr = IPAddress(record['host'])
                 record['ip_version'] = ipaddr.version
-        portscan_object.scan_info = scan_info
-        portscan_object.netstat = data.get('netstat', [])
-        portscan_object.save()
+        device.scan_info = scan_info
+        device.netstat = data.get('netstat', [])
         # firewall_state, _ = FirewallState.objects.get_or_create(device=device)
         firewall_rules = data.get('firewall_rules', {})
         if isinstance(firewall_rules, str):
@@ -102,7 +101,7 @@ class MtlsPingView(APIView):
         device.rules = firewall_rules
         # firewall_state.save()
 
-        device.save(update_fields=['last_ping', 'agent_version', 'trust_score', 'rules'])
+        device.save(update_fields=['last_ping', 'agent_version', 'trust_score', 'rules', 'scan_info', 'netstat'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')

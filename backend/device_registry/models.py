@@ -77,6 +77,22 @@ class Device(models.Model):
     rules = JSONField(blank=True, default=dict)
     policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
 
+    #PortScan
+    GOOD_PORTS = [22, 443]
+    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
+    scan_info = JSONField(blank=True, default=list)  # Ports open for incoming connection to.
+    netstat = JSONField(blank=True, default=list)  # Currently open network connections.
+    block_ports = JSONField(blank=True, default=list)
+    block_networks = JSONField(blank=True, default=list)
+
+    @property
+    def get_portscan(self):
+        return {
+            'scan_info': self.scan_info, 'netstat': self.netstat, 'block_ports': self.block_ports,
+            'block_networks': self.block_networks
+            #properties
+        }
+
     @property
     def get_firewallstate(self):
         if self.policy == Device.POLICY_ENABLED_ALLOW and not self.rules and self.scan_date is None:
@@ -129,11 +145,11 @@ class Device(models.Model):
     @property
     def actions_count(self):
         if self.policy == Device.POLICY_ENABLED_ALLOW:
-            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
-                portscan__block_ports__contains=[[23]]).exists()
+            telnet = self.__class__.objects.filter(pk=self.pk, scan_info__contains=[{'port': 23}]).exclude(
+                block_ports__contains=[[23]]).exists()
         elif self.policy == Device.POLICY_ENABLED_BLOCK:
-            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}],
-                                                   portscan__block_ports__contains=[[23]]).exists()
+            telnet = self.__class__.objects.filter(pk=self.pk, scan_info__contains=[{'port': 23}],
+                                                   block_ports__contains=[[23]]).exists()
         else:
             raise NotImplementedError
         return sum((self.deviceinfo.default_password is True,
@@ -180,7 +196,8 @@ class Device(models.Model):
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
-            port_score=self.portscan.get_score(),
+            # port_score=self.portscan.get_score(),
+            port_score=self.get_score(),
             default_password=not self.deviceinfo.default_password
         )
 
@@ -234,6 +251,95 @@ class Device(models.Model):
     @property
     def beautified_rules(self):
         return yaml.dump(self.rules) if self.rules else "none"
+
+    # PortScan
+    def get_score(self):
+        score = 1
+        ports = [port['port'] for port in self.scan_info if port['proto'] == 'tcp']
+        for port in ports:
+            if port in Device.GOOD_PORTS:
+                score -= 0.1
+            if port in Device.BAD_PORTS:
+                score -= 0.3
+        return max(round(score, 1), 0)
+
+    def ports_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the ports form
+         (gonna be split in a template by '/' separator):
+         [[0, '::ffff:192.168.1.178/22/TCP/6'], [0, '192.168.1.178/33/UDP/4']]
+        2) list of initial values for the ports form:
+         [0, 1]
+        3) list of choices for saving to the block list:
+         [['::ffff:192.168.1.178', 22, 'tcp', True], ['192.168.1.178', 33, 'udp', False]]
+        """
+        initial_data = []
+        choices_data = []
+        ports_data = []
+        port_record_index = 0
+        # 1st - take ports from the block list.
+        for port_record in self.block_ports:
+            choices_data.append((port_record_index, '%s/%s/%s/%d' % (
+                port_record[0], port_record[2], port_record[1].upper(), 6 if port_record[3] else 4)))
+            ports_data.append(port_record)
+            initial_data.append(port_record_index)
+            port_record_index += 1
+        # 2nd - take ports from the open ports list (only the ones missing in the block list).
+        for port_record in self.scan_info:
+            if [port_record['host'], port_record['proto'], port_record['port'], port_record['ip_version'] == 6] \
+                    not in self.block_ports:
+                choices_data.append((port_record_index, '%s/%s/%s/%d' % (
+                    port_record['host'], port_record['port'], port_record['proto'].upper(),
+                    port_record['ip_version'])))
+                ports_data.append([port_record['host'], port_record['proto'], port_record['port'],
+                                   port_record['ip_version'] == 6])
+                port_record_index += 1
+        return choices_data, initial_data, ports_data
+
+    def connections_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the open connections form
+         (gonna be split in a template by '/' separator)::
+         [[0, '192.168.1.20/4567/192.168.1.178/80/4/TCP/open/3425']]
+        2) list of initial values for the open connections form:
+         [0]
+        3) list of choices for saving to the block list:
+         [['192.168.1.20', False], ['::ffff:192.168.1.25', True]]
+        """
+        initial_data = []
+        choices_data = []
+        connections_data = []
+        connection_record_index = 0
+        unique_addresses = set()
+
+        # 1st - take addresses from the block list.
+        for connection_record in self.block_networks:
+            if tuple(connection_record) not in unique_addresses:
+                unique_addresses.add(tuple(connection_record))
+                choices_data.append((connection_record_index, '%s////%d///' % (connection_record[0],
+                                                                               6 if connection_record[1] else 4)))
+                connections_data.append(connection_record)
+                initial_data.append(connection_record_index)
+                connection_record_index += 1
+
+        # 2nd - take addresses from the open connections list (only the ones missing in the block list).
+        for connection_record in self.netstat:
+            if connection_record['remote_address'] and (connection_record['remote_address'][0],
+                                                        connection_record['ip_version'] == 6) not in unique_addresses:
+                unique_addresses.add((connection_record['remote_address'][0], connection_record['ip_version'] == 6))
+                choices_data.append((
+                    connection_record_index, '%s/%s/%s/%s/%d/%s/%s/%s' %
+                    (connection_record['remote_address'][0], connection_record['remote_address'][1],
+                     connection_record['local_address'][0] if connection_record['local_address'] else '',
+                     connection_record['local_address'][1] if connection_record['local_address'] else '',
+                     connection_record['ip_version'], connection_record['type'].upper(),
+                     connection_record['status'], connection_record['pid'])))
+                connections_data.append([connection_record['remote_address'][0],
+                                         connection_record['ip_version'] == 6])
+                connection_record_index += 1
+        return choices_data, initial_data, connections_data
 
     # Device:
     def save(self, *args, **kwargs):
