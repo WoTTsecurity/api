@@ -2,7 +2,7 @@ from django import forms
 
 import tagulous.forms
 
-from .models import Device, FirewallState, DeviceInfo
+from .models import Device, DeviceInfo
 
 
 class ClaimDeviceForm(forms.Form):
@@ -13,7 +13,7 @@ class ClaimDeviceForm(forms.Form):
 class DeviceMetadataForm(forms.ModelForm):
 
     class Meta:
-        model = DeviceInfo
+        model = Device
         fields = ['device_metadata']
 
 

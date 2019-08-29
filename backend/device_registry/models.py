@@ -85,6 +85,29 @@ class Device(models.Model):
     block_ports = JSONField(blank=True, default=list)
     block_networks = JSONField(blank=True, default=list)
 
+    #DeviceInfo
+    device_manufacturer = models.CharField(blank=True, null=True, max_length=128)
+    device_model = models.CharField(blank=True, null=True, max_length=128)
+    device_architecture = models.CharField(blank=True, null=True, max_length=32)
+    device_operating_system = models.CharField(blank=True, null=True, max_length=128)
+    device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
+    distr_id = models.CharField(blank=True, null=True, max_length=32)
+    distr_release = models.CharField(blank=True, null=True, max_length=32)
+    fqdn = models.CharField(blank=True, null=True, max_length=128)
+    ipv4_address = models.GenericIPAddressField(
+        protocol="IPv4",
+        null=True,
+        blank=True
+    )
+    selinux_state = JSONField(blank=True, default=dict)
+    app_armor_enabled = models.BooleanField(null=True, blank=True)
+    logins = JSONField(blank=True, default=dict)
+    default_password = models.BooleanField(null=True, blank=True)
+
+    # We need this for the YC demo.
+    detected_mirai = models.BooleanField(default=False, blank=True)
+    device_metadata = JSONField(blank=True, default=dict)
+
     @property
     def get_portscan(self):
         return {
@@ -341,11 +364,69 @@ class Device(models.Model):
                 connection_record_index += 1
         return choices_data, initial_data, connections_data
 
+    # DeviceInfo
+    RASPBERRY_MODEL_MAP = {
+        '0002': 'Model B Rev 1',
+        '0003': 'Model B Rev 1',
+        '0004': 'Model B Rev 2',
+        '0005': 'Model B Rev 2',
+        '0006': 'Model B Rev 2',
+        '0007': 'Model A',
+        '0008': 'Model A',
+        '0009': 'Model A',
+        '000d': 'Model B Rev 2',
+        '000e': 'Model B Rev 2',
+        '000f': 'Model B Rev 2',
+        '0010': 'Model B+',
+        '0013': 'Model B+',
+        '900032': 'Model B+',
+        '0011': 'Compute Module',
+        '0014': 'Compute Module',
+        '0012': 'Model A+',
+        '0015': 'Model A+',
+        'a01041': '2 Model B v1.1',
+        'a21041': '2 Model B v1.1',
+        'a22042': '2 Model B v1.2',
+        '900092': 'Zero v1.2',
+        '900093': 'Zero v1.3',
+        '9000c1': 'Zero W',
+        'a02082': '3 Model B',
+        'a22082': '3 Model B',
+        'a32082': '3 Model B',
+        'a52082': '3 Model B',
+        'a22083': '3 Model B',
+        'a020d3': '3 Model B+',
+        'a03111': '4 Model B',
+        'b03111': '4 Model B',
+        'c03111': '4 Model B'
+    }
+
+    def get_model(self):
+        model = None
+        if self.device_manufacturer == 'Raspberry Pi':
+            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
+        return model
+
+    def get_hardware_type(self):
+        if self.device_manufacturer == 'Raspberry Pi':
+            return 'Raspberry Pi'
+
+    @property
+    def beautified_logins(self):
+        if self.logins:
+            logins = self.logins
+            if '' in logins:
+                logins['<unknown>'] = self.logins['']
+                del (logins[''])
+            return yaml.dump(logins)
+        return "none"
+
     # Device:
     def save(self, *args, **kwargs):
         with transaction.atomic():
             self.trust_score = self.get_trust_score()
             super().save(*args, **kwargs)
+            self.set_meta_tags()
 
     class Meta:
         ordering = ('created',)
