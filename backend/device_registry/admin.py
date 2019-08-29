@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from device_registry.models import Device, DeviceInfo, PortScan, FirewallState, Credential
+from device_registry.models import Device, DeviceInfo, Credential
 
 
 @admin.register(Device)

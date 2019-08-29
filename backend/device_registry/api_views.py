@@ -34,7 +34,7 @@ from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSeri
 from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
+from .models import Device, DeviceInfo, Credential, Tag, PairingKey
 
 logger = logging.getLogger(__name__)
 

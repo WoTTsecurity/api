@@ -173,7 +173,7 @@ class Device(models.Model):
 
     def get_trust_score(self):
         # if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
-        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'portscan'):
+        if not hasattr(self, 'deviceinfo'):
             return None
 
         selinux = self.deviceinfo.selinux_state

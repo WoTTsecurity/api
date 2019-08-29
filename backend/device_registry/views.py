@@ -13,7 +13,7 @@ from django.db.models import Q
 
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
-from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
+from device_registry.models import Action, Device, average_trust_score
 from device_registry.models import PairingKey, get_bootstrap_color
 from device_registry.api_views import DeviceListFilterMixin
 
