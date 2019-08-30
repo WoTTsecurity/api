@@ -133,9 +133,8 @@ class Device(models.Model):
     def get_name(self):
         if self.name:
             return self.name
-        fqdn = self.hostname
-        if fqdn:
-            return fqdn[:36]
+        if self.fqdn:
+            return self.fqdn[:36]
         else:
             return 'device_%d' % self.pk
 
@@ -175,8 +174,7 @@ class Device(models.Model):
                                                    block_ports__contains=[[23]]).exists()
         else:
             raise NotImplementedError
-        return sum((self.deviceinfo.default_password is True,
-                    self.policy != Device.POLICY_ENABLED_BLOCK, telnet))
+        return sum((self.default_password is True, self.policy != Device.POLICY_ENABLED_BLOCK, telnet))
 
     @property
     def has_actions(self):
@@ -196,11 +194,9 @@ class Device(models.Model):
 
     def get_trust_score(self):
         # if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
-        if not hasattr(self, 'deviceinfo'):
-            return None
 
-        selinux = self.deviceinfo.selinux_state
-        logins = self.deviceinfo.logins
+        selinux = self.selinux_state
+        logins = self.logins
         failed_logins = sum([u['failed'] for u in logins.values()])
         if failed_logins <= self.MIN_FAILED_LOGINS:
             failed_logins = 1.0
@@ -214,14 +210,14 @@ class Device(models.Model):
             return 0 if x is None else x
 
         return self.calculate_trust_score(
-            app_armor_enabled=zero_if_none(self.deviceinfo.app_armor_enabled),
+            app_armor_enabled=zero_if_none(self.app_armor_enabled),
             firewall_enabled=self.policy == Device.POLICY_ENABLED_BLOCK,
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
             # port_score=self.portscan.get_score(),
             port_score=self.get_score(),
-            default_password=not self.deviceinfo.default_password
+            default_password=not self.default_password
         )
 
     @classmethod
@@ -249,7 +245,7 @@ class Device(models.Model):
         raspberry_pi_tag = Tag.objects.get(name='Hardware: Raspberry Pi')
         if all_devices_tag not in self.tags:
             self.tags.add(all_devices_tag)
-        if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
+        if self.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
 
     # FirewallState:
@@ -404,7 +400,7 @@ class Device(models.Model):
     def get_model(self):
         model = None
         if self.device_manufacturer == 'Raspberry Pi':
-            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
+            model = Device.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
         return model
 
     def get_hardware_type(self):

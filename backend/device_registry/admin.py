@@ -29,22 +29,22 @@ class DeviceAdmin(admin.ModelAdmin):
     }
 
 
-@admin.register(DeviceInfo)
-class DeviceInfoAdmin(admin.ModelAdmin):
-    list_display = [
-        'device',
-        'device_manufacturer',
-        'device_model',
-        'device_architecture',
-        'device_operating_system',
-        'device_operating_system_version',
-        'selinux_state',
-        'app_armor_enabled'
-    ]
-
-    formfield_overrides = {
-        JSONField: {'widget': JSONEditorWidget},
-    }
+# @admin.register(DeviceInfo)
+# class DeviceInfoAdmin(admin.ModelAdmin):
+#     list_display = [
+#         'device',
+#         'device_manufacturer',
+#         'device_model',
+#         'device_architecture',
+#         'device_operating_system',
+#         'device_operating_system_version',
+#         'selinux_state',
+#         'app_armor_enabled'
+#     ]
+#
+#     formfield_overrides = {
+#         JSONField: {'widget': JSONEditorWidget},
+#     }
 
 
 # @admin.register(PortScan)
