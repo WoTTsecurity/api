@@ -160,9 +160,7 @@ class Device(models.Model):
 
     @property
     def hostname(self):
-        if not hasattr(self, 'deviceinfo'):
-            return ''
-        return self.deviceinfo.fqdn if self.deviceinfo else ''
+        return self.fqdn
 
     @property
     def actions_count(self):

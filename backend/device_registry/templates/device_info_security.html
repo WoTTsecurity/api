@@ -55,8 +55,8 @@
                       <a href="https://wott.io/documentation/faq#default-credentials" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                   </th>
                 <td>
-                  {% if object.deviceinfo.default_password is None %}N/A{% else %}
-                    {% if not object.deviceinfo.default_password %}
+                  {% if object.default_password is None %}N/A{% else %}
+                    {% if not object.default_password %}
                       {% include "badge.html" with icon="check" color="success" %}
                       No default credentials detected.
                     {% else %}
@@ -82,8 +82,8 @@
                 </tr>
                 <th scope="row">Logins</th>
                 <td>
-                    {% if object.deviceinfo.logins %}
-                        <pre>{{ object.deviceinfo.beautified_logins }}</pre>
+                    {% if object.logins %}
+                        <pre>{{ object.beautified_logins }}</pre>
                     {% else %}
                         No recent login attempts detected.
                     {% endif %}
@@ -96,15 +96,15 @@
 
                   </th>
                   <td>
-                  {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing'%}
+                  {% if object.selinux_state.enabled and object.selinux_state.mode == 'enforcing'%}
                     {% include "badge.html" with icon="check" color="success" %}
-                  {% elif object.deviceinfo.selinux_state.enabled is not None %}
+                  {% elif object.selinux_state.enabled is not None %}
                     {% include "badge.html" with icon="exclamation-circle" color="warning" %}
                   {% endif %}
 
-                  {% if object.deviceinfo.selinux_state.enabled %}
-                    {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
-                  {%  elif object.deviceinfo.selinux_state.enabled is False %}
+                  {% if object.selinux_state.enabled %}
+                    {{ object.selinux_state.mode|default:'Enabled (unknown)' }}
+                  {%  elif object.selinux_state.enabled is False %}
                   {%  else %}
                       N/A
                   {% endif %}
@@ -116,8 +116,8 @@
                       <a href="https://wott.io/documentation/faq#apparmor" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                   </th>
                 <td>
-                  {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
-                    {% if object.deviceinfo.app_armor_enabled %}
+                  {% if object.app_armor_enabled is None %}N/A{% else %}
+                    {% if object.app_armor_enabled %}
                       {% include "badge.html" with icon="check" color="success" %}
                     {% else %}
                       {% include "badge.html" with icon="exclamation-circle" color="warning" %}

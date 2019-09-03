@@ -53,11 +53,11 @@
                     FQDN
                     <a href="https://wott.io/documentation/faq#fqdn" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                 </th>
-                <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                <td>{{ object.fqdn|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">IP</th>
-                <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
+                <td>{{ object.ipv4_address|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Last Heartbeat</th>

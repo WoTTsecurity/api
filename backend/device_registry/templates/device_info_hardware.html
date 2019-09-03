@@ -43,15 +43,15 @@
               <tbody>
               <tr>
                 <th scope="row">Manufacturer</th>
-                <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                <td>{{ object.device_manufacturer|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Model</th>
-                <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                <td>{{ object.get_model|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
-                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A'|upper }}</td>
+                <td>{{ object.device_architecture|default_if_none:'N/A'|upper }}</td>
               </tr>
               </tbody>
             </table>

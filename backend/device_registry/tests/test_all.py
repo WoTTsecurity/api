@@ -158,13 +158,25 @@ class DeviceModelTest(TestCase):
             last_ping=week_ago,
             owner=self.user1,
             certificate=TEST_CERT,
-            scan_info=portscan0
+            scan_info=portscan0,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}},
+            policy=Device.POLICY_ENABLED_BLOCK
         )
         self.device1 = Device.objects.create(
             device_id='device1.d.wott-dev.local',
             last_ping=hour_ago,
             owner=self.user1,
-            scan_info=portscan1
+            scan_info=portscan1,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}},
+            policy=Device.POLICY_ENABLED_BLOCK
         )
         self.device2 = Device.objects.create(
             device_id='device2.d.wott-dev.local',
@@ -175,25 +187,6 @@ class DeviceModelTest(TestCase):
             device_id='device3.d.wott-dev.local',
             last_ping=hour_ago,
             owner=self.user0
-        )
-
-        self.device_info0 = DeviceInfo.objects.create(
-            device=self.device0,
-            device_manufacturer='Raspberry Pi',
-            device_model='900092',
-            selinux_state={'enabled': True, 'mode': 'enforcing'},
-            app_armor_enabled=True,
-            logins={'pi': {'failed': 1, 'success': 1}},
-            policy=Device.POLICY_ENABLED_BLOCK
-        )
-        self.device_info1 = DeviceInfo.objects.create(
-            device=self.device1,
-            device_manufacturer='Raspberry Pi',
-            device_model='900092',
-            selinux_state={'enabled': True, 'mode': 'enforcing'},
-            app_armor_enabled=True,
-            logins={'pi': {'failed': 1, 'success': 1}},
-            policy=Device.POLICY_ENABLED_BLOCK
         )
 
         # self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
@@ -214,10 +207,7 @@ class DeviceModelTest(TestCase):
                 {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
                 {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
                 {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
-            ]
-        )
-        self.device_info4 = DeviceInfo.objects.create(
-            device=self.device4,
+            ],
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': False},
@@ -251,10 +241,9 @@ class DeviceModelTest(TestCase):
         # self.portscan4.save()
         # self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
         # self.firewall4.save()
-        self.device_info4.default_password = False
-        self.device_info4.save()
+        self.device4.default_password = False
         self.device4.policy = Device.POLICY_ENABLED_BLOCK
-        self.device4.save(update_fields=['trust_score', 'policy', 'scan_info'])
+        self.device4.save(update_fields=['trust_score', 'policy', 'scan_info', 'default_password'])
 
         # result: trust score high
         self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
@@ -310,12 +299,10 @@ class FormsTests(TestCase):
     def setUp(self):
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local',
                                             scan_info=OPEN_PORTS_INFO,
-                                            netstat=OPEN_CONNECTIONS_INFO)
-        self.device_info = DeviceInfo.objects.create(
-            device=self.device,
-            device_manufacturer='Raspberry Pi',
-            device_model='900092',
-        )
+                                            netstat=OPEN_CONNECTIONS_INFO,
+                                            device_manufacturer='Raspberry Pi',
+                                            device_model='900092',
+                                            )
         # self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
         #                                         netstat=OPEN_CONNECTIONS_INFO)
 
@@ -351,11 +338,10 @@ class ActionsViewTests(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT, scan_info=OPEN_PORTS_INFO_TELNET,
-                                            netstat=OPEN_CONNECTIONS_INFO)
+                                            netstat=OPEN_CONNECTIONS_INFO, default_password=True)
         # self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
         #                                         netstat=OPEN_CONNECTIONS_INFO)
         # self.firewall = FirewallState.objects.create(device=self.device)
-        self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         self.url = reverse('actions')
 
     def test_get(self):
@@ -385,9 +371,7 @@ class DeviceDetailViewTests(TestCase):
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
             certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc),
-            policy=FirewallState.POLICY_ENABLED_BLOCK, scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO)
-        self.deviceinfo = DeviceInfo.objects.create(
-            device=self.device,
+            policy=FirewallState.POLICY_ENABLED_BLOCK, scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO,
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
@@ -414,9 +398,7 @@ class DeviceDetailViewTests(TestCase):
         self.device_no_logins = Device.objects.create(
             device_id='device3.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
             certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc),
-            scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO)
-        self.deviceinfo3 = DeviceInfo.objects.create(
-            device=self.device_no_logins,
+            scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO,
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
@@ -508,7 +490,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.post(self.url3, form_data)
         response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.context_data["device"].deviceinfo.device_metadata, {"test": "value"})
+        self.assertDictEqual(response.context_data["device"].device_metadata, {"test": "value"})
 
     def test_comment(self):
         self.client.login(username='test', password='123')
@@ -596,10 +578,7 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
-        )
-        self.deviceinfo0 = DeviceInfo.objects.create(
-            device=self.device0,
+            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1),
             fqdn='FirstFqdn',
             default_password=False,
             detected_mirai=True,
@@ -609,10 +588,7 @@ class RootViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
-        )
-        self.deviceinfo1 = DeviceInfo.objects.create(
-            device=self.device1,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23),
             fqdn='SecondFqdn',
             default_password=True,
             detected_mirai=True,

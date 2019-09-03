@@ -26,7 +26,7 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        common_query = Q(owner=self.request.user, deviceinfo__detected_mirai=True)
+        common_query = Q(owner=self.request.user, detected_mirai=True)
         query = self.get_filter_q(set_filter_dict=True)
         return queryset.filter(common_query & query).distinct()
 
@@ -302,7 +302,7 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
         # else:
         #     context['firewall'] = None
         if 'dev_md' not in context:
-            device_metadata = self.object.deviceinfo.device_metadata
+            device_metadata = self.object.device_metadata
             context['dev_md'] = []
             for key, value in device_metadata.items():
                 if isinstance(value, str):
@@ -310,15 +310,15 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
                 else:
                     context['dev_md'].append([key, json.dumps(value)])
         if 'form' not in context:
-            context['form'] = DeviceMetadataForm(instance=self.object.deviceinfo)
+            context['form'] = DeviceMetadataForm(instance=self.object)
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
+        form = DeviceMetadataForm(request.POST, instance=self.object)
         if form.is_valid() and "device_metadata" in form.cleaned_data:
-            self.object.deviceinfo.device_metadata = form.cleaned_data["device_metadata"]
-            self.object.deviceinfo.save(update_fields=['device_metadata'])
+            self.object.device_metadata = form.cleaned_data["device_metadata"]
+            self.object.save(update_fields=['device_metadata'])
             return HttpResponseRedirect(reverse('device-detail-metadata', kwargs={'pk': kwargs['pk']}))
         return self.render_to_response(self.get_context_data(form=form))
 
@@ -365,7 +365,7 @@ def actions_view(request, device_pk=None):
     actions = []
 
     # Default username/password used action.
-    insecure_password_devices = request.user.devices.filter(deviceinfo__default_password=True)
+    insecure_password_devices = request.user.devices.filter(default_password=True)
     if device_pk is not None:
         insecure_password_devices = insecure_password_devices.filter(pk=device_pk)
     if insecure_password_devices.exists():

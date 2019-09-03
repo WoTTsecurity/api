@@ -177,9 +177,7 @@ class DeviceListViewTest(APITestCase):
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local',
             owner=self.user,
-            tags='tag1,tag2')
-        self.device_info = DeviceInfo.objects.create(
-            device=self.device,
+            tags='tag1,tag2',
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
@@ -369,7 +367,7 @@ class SignNewDeviceViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 0)
-            self.assertEqual(DeviceInfo.objects.count(), 0)
+            # self.assertEqual(DeviceInfo.objects.count(), 0)
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertDictEqual(response.data, {
@@ -379,7 +377,7 @@ class SignNewDeviceViewTest(APITestCase):
                 'fallback_token': self.uuid
             })
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_failed_sign_csr(self):
         with patch('cfssl.cfssl.CFSSL.sign') as sign, \
@@ -390,12 +388,12 @@ class SignNewDeviceViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 0)
-            self.assertEqual(DeviceInfo.objects.count(), 0)
+            # self.assertEqual(DeviceInfo.objects.count(), 0)
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data, 'Unknown error')
             self.assertEqual(Device.objects.count(), 0)
-            self.assertEqual(DeviceInfo.objects.count(), 0)
+            # self.assertEqual(DeviceInfo.objects.count(), 0)
 
 
 class RenewExpiredCertViewTest(APITestCase):
@@ -408,7 +406,7 @@ class RenewExpiredCertViewTest(APITestCase):
             fallback_token='0000000',
             certificate_expires=timezone.now() - timezone.timedelta(days=1)
         )
-        DeviceInfo.objects.create(device=self.device)
+        # DeviceInfo.objects.create(device=self.device)
         self.url = reverse('sign_expired_cert')
         self.expires = timezone.now() + timezone.timedelta(days=3)
         self.uuid = uuid.uuid4()
@@ -427,7 +425,7 @@ class RenewExpiredCertViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertDictEqual(response.data, {
@@ -438,13 +436,13 @@ class RenewExpiredCertViewTest(APITestCase):
                 'claimed': self.device.claimed
             })
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_wrong_device_id(self):
         post_data = self.post_data.copy()
         post_data['device_id'] = 'no_such_device'
         self.assertEqual(Device.objects.count(), 1)
-        self.assertEqual(DeviceInfo.objects.count(), 1)
+        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'device_id': [ErrorDetail(string='Device not found', code='invalid')]})
@@ -453,7 +451,7 @@ class RenewExpiredCertViewTest(APITestCase):
         self.device.certificate_expires = timezone.now() + timezone.timedelta(days=1)
         self.device.save(update_fields=['certificate_expires'])
         self.assertEqual(Device.objects.count(), 1)
-        self.assertEqual(DeviceInfo.objects.count(), 1)
+        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, self.post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, 'Certificate is not expired yet')
@@ -462,7 +460,7 @@ class RenewExpiredCertViewTest(APITestCase):
         post_data = self.post_data.copy()
         post_data['fallback_token'] = 'no_such_fallback_token'
         self.assertEqual(Device.objects.count(), 1)
-        self.assertEqual(DeviceInfo.objects.count(), 1)
+        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(
@@ -550,7 +548,7 @@ class MtlsCredsViewTest(APITestCase):
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', data={'key2': 'iuoiuoifpojoijccm'},
                                                      tags='Hardware: Raspberry Pi,')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
-        self.deviceinfo = DeviceInfo.objects.create(device=self.device)
+        # self.deviceinfo = DeviceInfo.objects.create(device=self.device)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -575,8 +573,8 @@ class MtlsCredsViewTest(APITestCase):
         self.assertListEqual(response.json(), [])
 
     def test_get_limited_by_meta_tags(self):
-        self.deviceinfo.device_manufacturer = 'Raspberry Pi'
-        self.deviceinfo.save(update_fields=['device_manufacturer'])
+        self.device.device_manufacturer = 'Raspberry Pi'
+        self.device.save(update_fields=['device_manufacturer'])
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
@@ -596,13 +594,11 @@ class MtlsDeviceMetadataViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
-                                            tags='tag1', name='the-device-name')
-        self.device_info = DeviceInfo.objects.create(
-            device=self.device,
-            device_manufacturer='Raspberry Pi',
-            device_model='900092',
-            device_metadata={"test": "value"}
-        )
+                                            tags='tag1', name='the-device-name',
+                                            device_manufacturer='Raspberry Pi',
+                                            device_model='900092',
+                                            device_metadata={"test": "value"}
+                                            )
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -626,7 +622,7 @@ class MtlsRenewCertViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
-        DeviceInfo.objects.create(device=self.device)
+        # DeviceInfo.objects.create(device=self.device)
         self.url = reverse('mtls-sign-device-cert-test')
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -649,7 +645,7 @@ class MtlsRenewCertViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
             response = self.client.post(self.url, self.post_data, **self.headers)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertDictEqual(response.data, {
@@ -660,18 +656,18 @@ class MtlsRenewCertViewTest(APITestCase):
                 'claimed': self.device.claimed
             })
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_wrong_device_id(self):
         post_data = self.post_data.copy()
         post_data['device_id'] = 'no_such_device'
         self.assertEqual(Device.objects.count(), 1)
-        self.assertEqual(DeviceInfo.objects.count(), 1)
+        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data, **self.headers)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, 'Invalid request.')
         self.assertEqual(Device.objects.count(), 1)
-        self.assertEqual(DeviceInfo.objects.count(), 1)
+        # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_invalid_csr(self):
         with patch('device_registry.ca_helper.csr_is_valid') as civ:
@@ -680,7 +676,7 @@ class MtlsRenewCertViewTest(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             self.assertEqual(response.data, 'Invalid CSR.')
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_signing_error(self):
         with patch('device_registry.ca_helper.csr_is_valid') as civ, \
@@ -691,7 +687,7 @@ class MtlsRenewCertViewTest(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data, 'Unknown error')
             self.assertEqual(Device.objects.count(), 1)
-            self.assertEqual(DeviceInfo.objects.count(), 1)
+            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
 
 class MtlsPingViewTest(APITestCase):
@@ -740,6 +736,7 @@ class MtlsPingViewTest(APITestCase):
                                              'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
+        # TODO: change checking methode due to device info
         devinfo_obj_count_before = DeviceInfo.objects.count()
         portscan_obj_count_before = PortScan.objects.count()
         self.client.post(self.url, self.ping_payload, **self.headers)
@@ -765,8 +762,8 @@ class MtlsPingViewTest(APITestCase):
     def test_ping_distr_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
         self.device.refresh_from_db()
-        self.assertEqual(self.device.deviceinfo.distr_id, 'Raspbian')
-        self.assertEqual(self.device.deviceinfo.distr_release, '9.4')
+        self.assertEqual(self.device.distr_id, 'Raspbian')
+        self.assertEqual(self.device.distr_release, '9.4')
 
     def test_ping_writes_firewall_info_pos(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
@@ -1110,10 +1107,7 @@ class DeviceListAjaxViewTest(APITestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
-        )
-        self.deviceinfo0 = DeviceInfo.objects.create(
-            device=self.device0,
+            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1),
             fqdn='FirstFqdn',
             default_password=False,
         )
@@ -1122,10 +1116,7 @@ class DeviceListAjaxViewTest(APITestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
-        )
-        self.deviceinfo1 = DeviceInfo.objects.create(
-            device=self.device1,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23),
             fqdn='SecondFqdn',
             default_password=True,
         )
@@ -1133,10 +1124,7 @@ class DeviceListAjaxViewTest(APITestCase):
             device_id='device2.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
-        )
-        self.deviceinfo2 = DeviceInfo.objects.create(
-            device=self.device2,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23),
             fqdn='ThirdFqdn',
             default_password=True,
         )

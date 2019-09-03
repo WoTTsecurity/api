@@ -87,7 +87,7 @@
                 <tbody>
                 <tr>
                   <th scope="row" width="20%">Device Name</th>
-                  <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                  <td width="80%">{{ object.name|default_if_none:object.fqdn|default_if_none:'N/A' }}</td>
                 </tr>
                 <tr>
                   <th scope="row" width="20%">Device ID</th>
@@ -95,11 +95,11 @@
                 </tr>
                 <tr>
                   <th scope="row" width="20%">Manufacturer</th>
-                  <td width="80%">{{  object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                  <td width="80%">{{  object.device_manufacturer|default_if_none:'N/A' }}</td>
                 </tr>
                 <tr>
                   <th scope="row" width="20%">Model</th>
-                  <td width="80%">{{  object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                  <td width="80%">{{  object.get_model|default_if_none:'N/A' }}</td>
                 </tr>
                 <tr>
                   <th scope="row" width="20%">

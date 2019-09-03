@@ -780,12 +780,12 @@ class DeviceListFilterMixin:
     """
     FILTER_FIELDS = {
         'device-name': (
-            ['deviceinfo__fqdn', 'name'],
+            ['fqdn', 'name'],
             'Device Name',
             'str'
         ),
         'hostname': (
-            'deviceinfo__fqdn',
+            'fqdn',
             'Hostname',
             'str'
         ),
@@ -805,7 +805,7 @@ class DeviceListFilterMixin:
             'float'
         ),
         'default-credentials': (
-            'deviceinfo__default_password',
+            'default_password',
             'Default Credentials Found',
             'bool'
         ),
