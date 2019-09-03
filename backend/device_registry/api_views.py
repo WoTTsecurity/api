@@ -99,6 +99,7 @@ class MtlsPingView(APIView):
         if isinstance(firewall_rules, str):
             firewall_rules = json.loads(firewall_rules)
         device.rules = firewall_rules
+        device.scan_date = device.last_ping
         # firewall_state.save()
 
         # device.save(update_fields=['last_ping', 'agent_version', 'trust_score', 'rules', 'scan_info', 'netstat'])

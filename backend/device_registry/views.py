@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
-
+from django.utils import timezone
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, average_trust_score
@@ -216,10 +216,11 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 self.object.block_ports = out_data
                 self.object.policy = form.cleaned_data['policy']
+                self.object.scan_date = timezone.now()
                 with transaction.atomic():
                     # portscan.save(update_fields=['block_ports'])
                     # firewallstate.save(update_fields=['policy'])
-                    self.object.save(update_fields=['trust_score', 'policy', 'block_ports'])
+                    self.object.save(update_fields=['trust_score', 'policy', 'block_ports', 'scan_date'])
 
         elif 'is_connections_form' in request.POST:
             connections_form_data = self.object.connections_form_data()
@@ -231,7 +232,8 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 self.object.block_networks = out_data
                 # portscan.save(update_fields=['block_networks'])
-                self.object.save(update_fields=['trust_score', 'block_networks'])
+                self.object.scan_date = timezone.now()
+                self.object.save(update_fields=['trust_score', 'block_networks', 'scan_date'])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 

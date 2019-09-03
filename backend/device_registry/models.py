@@ -73,7 +73,7 @@ class Device(models.Model):
         (POLICY_ENABLED_ALLOW, 'Allow by default'),
         (POLICY_ENABLED_BLOCK, 'Block by default')
     )
-    scan_date = models.DateTimeField(null=True, auto_now_add=True)
+    scan_date = models.DateTimeField(null=True)
     rules = JSONField(blank=True, default=dict)
     policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
 
