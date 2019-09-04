@@ -12,7 +12,7 @@ def save_trust_score(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('device_registry', '0053_auto_20190716_1247'),
+        ('device_registry', '0056_auto_20190903_0909'),
     ]
 
     operations = [

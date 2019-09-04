@@ -387,7 +387,7 @@ class DeviceDetailViewTests(TestCase):
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT)
-        self.firewall2 = FirewallState.objects.create(device=self.device_no_portscan)
+        #self.firewall2 = FirewallState.objects.create(device=self.device_no_portscan)
 
         self.device_no_firewall = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT, scan_info=OPEN_PORTS_INFO,
@@ -404,7 +404,8 @@ class DeviceDetailViewTests(TestCase):
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
             logins={},
-            default_password=True
+            default_password=True,
+            scan_date=timezone.now()  # guarantees that portscan and firewallstate is non None
         )
         # self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
         #                                          netstat=OPEN_CONNECTIONS_INFO)
@@ -510,19 +511,19 @@ class DeviceDetailViewTests(TestCase):
 
     def test_open_ports(self):
         self.client.login(username='test', password='123')
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.device.policy}
         self.client.post(self.url2, form_data)
         # portscan = PortScan.objects.get(pk=self.portscan.pk)
-        block_ports = self.device.block_ports
-        self.assertListEqual(block_ports, [['192.168.1.178', 'tcp', 22, False]])
+        self.device.refresh_from_db(fields=['block_ports'])
+        self.assertListEqual(self.device.block_ports, [['192.168.1.178', 'tcp', 22, False]])
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         self.client.post(self.url2, form_data)
         #portscan = PortScan.objects.get(pk=self.portscan.pk)
-        block_networks = self.device.block_networks
-        self.assertListEqual(block_networks, [['192.168.1.177', False]])
+        self.device.refresh_from_db(fields=['block_networks'])
+        self.assertListEqual(self.device.block_networks, [['192.168.1.177', False]])
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')

@@ -121,10 +121,11 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         #     context['portscan'] = None
         context['portscan'] = self.object.get_portscan
         # try:
-        context['firewall'] = [self.object.policy, self.object.rules, self.object.scan_date,
-                               # properties:
-                               self.object.beautified_rules, self.object.policy_string,
-                               self.object.ports_field_name]
+        context['firewall'] = self.object.get_firewallstate
+                               # [self.object.policy, self.object.rules, self.object.scan_date,
+                               # # properties:
+                               # self.object.beautified_rules, self.object.policy_string,
+                               # self.object.ports_field_name]
 
 
         # except FirewallState.DoesNotExist:

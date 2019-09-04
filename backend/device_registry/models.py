@@ -110,6 +110,9 @@ class Device(models.Model):
 
     @property
     def get_portscan(self):
+        if self.scan_date is None and not self.scan_info and not self.netstat and not self.block_ports and \
+        not self.block_networks:
+            return None
         return {
             'scan_info': self.scan_info, 'netstat': self.netstat, 'block_ports': self.block_ports,
             'block_networks': self.block_networks
