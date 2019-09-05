@@ -196,8 +196,8 @@ class DeviceListViewTest(APITestCase):
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
              ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
-                                                          ('device_manufacturer', self.device_info.device_manufacturer),
-                                                          ('device_model', self.device_info.device_model),
+                                                          ('device_manufacturer', self.device.device_manufacturer),
+                                                          ('device_model', self.device.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
@@ -220,8 +220,8 @@ class DeviceListViewTest(APITestCase):
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
              ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
-                                                          ('device_manufacturer', self.device_info.device_manufacturer),
-                                                          ('device_model', self.device_info.device_model),
+                                                          ('device_manufacturer', self.device.device_manufacturer),
+                                                          ('device_model', self.device.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
@@ -713,7 +713,7 @@ class MtlsPingViewTest(APITestCase):
     def test_ping_get_success(self):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
+        self.assertDictEqual(response.data, {'policy': self.device.policy_string,
                                              'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
 
     def test_pong_data(self):
@@ -721,43 +721,45 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
-                                             'policy': self.device.firewallstate.policy_string})
+                                             'policy': self.device.policy_string})
         # 2nd request
-        self.device.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
-        self.device.portscan.block_networks = [['192.168.1.177', False]]
-        self.device.portscan.save(update_fields=['block_ports', 'block_networks'])
+        self.device.block_ports = [['192.168.1.178', 'tcp', 22, False]]
+        self.device.block_networks = [['192.168.1.177', False]]
+        self.device.save(update_fields=['block_ports', 'block_networks'])
         response = self.client.post(self.url, self.ping_payload, **self.headers)
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
+        self.assertDictEqual(response.data, {'policy': self.device.policy_string,
                                              'block_ports': [['192.168.1.178', 'tcp', 22, False]],
                                              'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
         # TODO: change checking methode due to device info
-        devinfo_obj_count_before = DeviceInfo.objects.count()
-        portscan_obj_count_before = PortScan.objects.count()
+        # devinfo_obj_count_before = DeviceInfo.objects.count()
+        # portscan_obj_count_before = PortScan.objects.count()
+        portscan_obj_count_before = Device.objects.filter(scan_date__isnull=False).count()
         self.client.post(self.url, self.ping_payload, **self.headers)
-        devinfo_obj_count_after = DeviceInfo.objects.count()
-        portscan_obj_count_after = PortScan.objects.count()
-        self.assertEqual(devinfo_obj_count_before, 0)
+        portscan_obj_count_after = Device.objects.filter(scan_date__isnull=False).count()
+        #self.assertEqual(devinfo_obj_count_before, 0)
         self.assertEqual(portscan_obj_count_before, 0)
-        self.assertEqual(devinfo_obj_count_after, 1)
+        #self.assertEqual(devinfo_obj_count_after, 1)
         self.assertEqual(portscan_obj_count_after, 1)
 
     def test_ping_writes_scan_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        portscan = PortScan.objects.get(device=self.device)
-        scan_info = portscan.scan_info
-        self.assertListEqual(scan_info, OPEN_PORTS_INFO)
+        # portscan = PortScan.objects.get(device=self.device)
+        # scan_info = portscan.scan_info
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.scan_info, OPEN_PORTS_INFO)
 
     def test_ping_writes_netstat(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        portscan = PortScan.objects.get(device=self.device)
-        netstat = portscan.netstat
-        self.assertListEqual(netstat, OPEN_CONNECTIONS_INFO)
+        # portscan = PortScan.objects.get(device=self.device)
+        # netstat = portscan.netstat
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.netstat, OPEN_CONNECTIONS_INFO)
 
     def test_ping_distr_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
@@ -767,8 +769,9 @@ class MtlsPingViewTest(APITestCase):
 
     def test_ping_writes_firewall_info_pos(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        firewall_state = FirewallState.objects.get(device=self.device)
-        self.assertDictEqual(firewall_state.rules, TEST_RULES)
+        # firewall_state = FirewallState.objects.get(device=self.device)
+        self.device.refresh_from_db(fields=['rules'])
+        self.assertDictEqual(self.device.rules, TEST_RULES)
 
     def test_ping_writes_firewall_info_neg(self):
         ping_payload = {
@@ -781,8 +784,9 @@ class MtlsPingViewTest(APITestCase):
             'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
         }
         self.client.post(self.url, ping_payload, **self.headers)
-        firewall_state = FirewallState.objects.get(device=self.device)
-        self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
+        self.device.refresh_from_db(fields=['rules'])
+        #firewall_state = FirewallState.objects.get(device=self.device)
+        self.assertDictEqual(self.device.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
 
     def test_ping_converts_json(self):
         scan_info = [{
@@ -803,10 +807,11 @@ class MtlsPingViewTest(APITestCase):
         }
 
         self.client.post(self.url, ping_payload, **self.headers)
-        firewall_state = FirewallState.objects.get(device=self.device)
-        portscan = PortScan.objects.get(device=self.device)
-        self.assertListEqual(scan_info, portscan.scan_info)
-        self.assertDictEqual(firewall_rules, firewall_state.rules)
+        self.device.refresh_from_db(fields=['scan_info', 'rules'])
+        # firewall_state = FirewallState.objects.get(device=self.device)
+        # portscan = PortScan.objects.get(device=self.device)
+        self.assertListEqual(scan_info, self.device.scan_info)
+        self.assertDictEqual(firewall_rules, self.device.rules)
 
     def test_ping_writes_trust_score(self):
         scan_info = [{

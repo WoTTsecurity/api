@@ -143,7 +143,6 @@ class DeviceModelTest(TestCase):
         self.user1 = User.objects.create_user('test-no-device')
         week_ago = timezone.now() - datetime.timedelta(days=7)
         hour_ago = timezone.now() - datetime.timedelta(hours=1)
-
         portscan0 = [
             {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "192.168.1.178", "port": 25, "proto": "tcp", "state": "open", "ip_version": 4}
@@ -159,6 +158,8 @@ class DeviceModelTest(TestCase):
             owner=self.user1,
             certificate=TEST_CERT,
             scan_info=portscan0,
+            scan_date=timezone.now(),  # "not null" - marker, indicate that portscan/firewallstate is present
+            fqdn='', # "not null" - marker, indicate that deviceinfo is present
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
@@ -171,6 +172,8 @@ class DeviceModelTest(TestCase):
             last_ping=hour_ago,
             owner=self.user1,
             scan_info=portscan1,
+            scan_date=timezone.now(),  # "not None" - marker, indicate that portscan/firewallstate is present
+            fqdn='',  # "not null" - marker, indicate that deviceinfo is present
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
@@ -208,6 +211,8 @@ class DeviceModelTest(TestCase):
                 {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
                 {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
             ],
+            scan_date=timezone.now(),  # "not None" - marker, indicate that portscan/firewallstate is present
+            fqdn='',  # "not null" - marker, indicate that deviceinfo is present
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': False},
@@ -249,15 +254,15 @@ class DeviceModelTest(TestCase):
         self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
 
     def test_get_model(self):
-        model = self.device_info0.device_model
-        self.device_info0.device_model = '000d'
-        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
-        self.device_info0.device_model = '000D'  # case insensitive
-        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
-        self.device_info0.device_model = model
+        model = self.device0.device_model
+        self.device0.device_model = '000d'
+        self.assertEqual(self.device0.get_model(), 'Model B Rev 2')
+        self.device0.device_model = '000D'  # case insensitive
+        self.assertEqual(self.device0.get_model(), 'Model B Rev 2')
+        self.device0.device_model = model
 
     def test_get_hardware_type(self):
-        hw_type = self.device_info0.get_hardware_type()
+        hw_type = self.device0.get_hardware_type()
         self.assertEqual(hw_type, 'Raspberry Pi')
 
     def test_active_inactive(self):
@@ -317,14 +322,14 @@ class FormsTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_ports_form(self):
-        ports_form_data = self.ports_form_data()
+        ports_form_data = self.device.ports_form_data()
         # firewallstate = FirewallState.objects.create(device=self.device)
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.device.policy}
         form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
     def test_networks_form(self):
-        connections_form_data = self.connections_form_data()
+        connections_form_data = self.device.connections_form_data()
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         form = ConnectionsForm(data=form_data, open_connections_choices=connections_form_data[0])
         self.assertTrue(form.is_valid())

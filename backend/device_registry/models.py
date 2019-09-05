@@ -108,10 +108,14 @@ class Device(models.Model):
     detected_mirai = models.BooleanField(default=False, blank=True)
     device_metadata = JSONField(blank=True, default=dict)
 
+    def _has_portscan(self):
+        return self.scan_date is not None or self.scan_info or self.netstat or self.block_ports or self.block_networks
+
     @property
     def get_portscan(self):
-        if self.scan_date is None and not self.scan_info and not self.netstat and not self.block_ports and \
-        not self.block_networks:
+        # if self.scan_date is None and not self.scan_info and not self.netstat and not self.block_ports and \
+        # not self.block_networks:
+        if not self._has_portscan():
             return None
         return {
             'scan_info': self.scan_info, 'netstat': self.netstat, 'block_ports': self.block_ports,
@@ -119,9 +123,13 @@ class Device(models.Model):
             #properties
         }
 
+    def _has_firewallstate(self):
+        return self.policy != Device.POLICY_ENABLED_ALLOW or self.rules or self.scan_date is not None
+
     @property
     def get_firewallstate(self):
-        if self.policy == Device.POLICY_ENABLED_ALLOW and not self.rules and self.scan_date is None:
+        # if self.policy == Device.POLICY_ENABLED_ALLOW and not self.rules and self.scan_date is None:
+        if not self._has_firewallstate():
             return None
         return {
             'policy': self.policy, 'rules': self.rules, 'scan_date': self.scan_date,
@@ -193,8 +201,13 @@ class Device(models.Model):
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
 
+    def _has_deviceinfo(self):
+        return self.fqdn is not None
+
     def get_trust_score(self):
         # if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+        if not self._has_firewallstate() or not self._has_portscan() or not self._has_deviceinfo():
+            return None
 
         selinux = self.selinux_state
         logins = self.logins

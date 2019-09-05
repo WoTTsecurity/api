@@ -69,7 +69,7 @@ class MtlsPingView(APIView):
         device.agent_version = data.get('agent_version')
 
         # device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
-        device.device__last_ping = timezone.now()
+        # device.device__last_ping = timezone.now()
         device.device_operating_system_version = data.get('device_operating_system_version')
         device.fqdn = data.get('fqdn')
         device.ipv4_address = data.get('ipv4_address')

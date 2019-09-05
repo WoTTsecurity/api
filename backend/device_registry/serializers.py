@@ -45,7 +45,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
-    device = DeviceSerializer(read_only=True)
+    device = serializers.SerializerMethodField(method_name='device_field')
 
     class Meta:
         model = Device
@@ -53,6 +53,10 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
                   'device_operating_system_version', 'distr_id', 'distr_release', 'fqdn', 'ipv4_address',
                   'selinux_state', 'app_armor_enabled', 'logins', 'default_password', 'detected_mirai',
                   'device_metadata']
+
+    def device_field(self, obj):
+        serializer = DeviceSerializer(instance=obj)
+        return serializer.data
 
 
 class TagsSerializer(serializers.ModelSerializer):
@@ -80,6 +84,7 @@ class CredentialSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('At least one key-value pair is required.')
         return value
+
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
     csr = serializers.CharField(source='certificate_csr')
@@ -224,5 +229,8 @@ class DeviceListSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super(DeviceListSerializer, self).to_representation(instance)
-        representation['last_ping'] = timesince(instance.last_ping) + ' ago'
+        if instance.last_ping is None:
+            representation['last_ping'] = 'N/A'
+        else:
+            representation['last_ping'] = timesince(instance.last_ping) + ' ago'
         return representation
