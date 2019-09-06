@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from device_registry.models import Device, DeviceInfo, Credential
+from device_registry.models import Device, Credential
 
 
 @admin.register(Device)
@@ -13,9 +13,6 @@ class DeviceAdmin(admin.ModelAdmin):
         'last_ping',
         'owner',
         'claimed',
-        # 'scan_date',
-        # 'policy',
-        # 'rules'
     ]
 
     list_filter = (
@@ -28,35 +25,6 @@ class DeviceAdmin(admin.ModelAdmin):
         JSONField: {'widget': JSONEditorWidget},
     }
 
-
-# @admin.register(DeviceInfo)
-# class DeviceInfoAdmin(admin.ModelAdmin):
-#     list_display = [
-#         'device',
-#         'device_manufacturer',
-#         'device_model',
-#         'device_architecture',
-#         'device_operating_system',
-#         'device_operating_system_version',
-#         'selinux_state',
-#         'app_armor_enabled'
-#     ]
-#
-#     formfield_overrides = {
-#         JSONField: {'widget': JSONEditorWidget},
-#     }
-
-
-# @admin.register(PortScan)
-# class PortscanAdmin(admin.ModelAdmin):
-#     list_display = ['device', 'scan_date']
-#
-#     formfield_overrides = {
-#         JSONField: {'widget': JSONEditorWidget},
-#     }
-#
-#     ordering = ('scan_date',)
-#
 
 @admin.register(Credential)
 class CredentialAdmin(admin.ModelAdmin):

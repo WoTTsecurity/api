@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, average_trust_score
+from device_registry.models import Device, average_trust_score
 from device_registry.models import PairingKey
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
@@ -192,12 +192,6 @@ class DeviceModelTest(TestCase):
             owner=self.user0
         )
 
-        # self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
-        # self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
-
-        # self.firewall0 = FirewallState.objects.create(device=self.device0, policy=FirewallState.POLICY_ENABLED_BLOCK)
-        # self.firewall1 = FirewallState.objects.create(device=self.device1, policy=FirewallState.POLICY_ENABLED_BLOCK)
-
         self.user4 = User.objects.create_user('test-fixing-issues')
         self.device4 = Device.objects.create(
             device_id='device4.d.wott-dev.local',
@@ -219,17 +213,8 @@ class DeviceModelTest(TestCase):
             app_armor_enabled=False,
             default_password=True,
             logins={'pi': {'failed': 1, 'success': 1}},
-            policy=FirewallState.POLICY_ENABLED_ALLOW
+            policy=Device.POLICY_ENABLED_ALLOW
         )
-        # self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
-        #     {"host": "0.0.0.0", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4},
-        #     {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
-        #     {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6},
-        #     {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
-        #     {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
-        #     {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
-        # ])
-        # self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
     def test_fixed_issues(self):
         self.device4.save(update_fields=['trust_score'])
@@ -243,9 +228,6 @@ class DeviceModelTest(TestCase):
             {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ]
-        # self.portscan4.save()
-        # self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
-        # self.firewall4.save()
         self.device4.default_password = False
         self.device4.policy = Device.POLICY_ENABLED_BLOCK
         self.device4.save(update_fields=['trust_score', 'policy', 'scan_info', 'default_password'])
@@ -308,8 +290,6 @@ class FormsTests(TestCase):
                                             device_manufacturer='Raspberry Pi',
                                             device_model='900092',
                                             )
-        # self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
-        #                                         netstat=OPEN_CONNECTIONS_INFO)
 
     def test_device_metadata_form(self):
         form_data = {'device_metadata': {"test": "value"}}
@@ -344,9 +324,6 @@ class ActionsViewTests(TestCase):
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT, scan_info=OPEN_PORTS_INFO_TELNET,
                                             netstat=OPEN_CONNECTIONS_INFO, default_password=True)
-        # self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
-        #                                         netstat=OPEN_CONNECTIONS_INFO)
-        # self.firewall = FirewallState.objects.create(device=self.device)
         self.url = reverse('actions')
 
     def test_get(self):
@@ -376,29 +353,23 @@ class DeviceDetailViewTests(TestCase):
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
             certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc),
-            policy=FirewallState.POLICY_ENABLED_BLOCK, scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO,
+            policy=Device.POLICY_ENABLED_BLOCK, scan_info=OPEN_PORTS_INFO, netstat=OPEN_CONNECTIONS_INFO,
             device_manufacturer='Raspberry Pi',
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
             logins={'pi': {'failed': 1, 'success': 1}}
         )
-        # self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
-        #                                         netstat=OPEN_CONNECTIONS_INFO)
-        # self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT)
-        #self.firewall2 = FirewallState.objects.create(device=self.device_no_portscan)
 
         self.device_no_firewall = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT, scan_info=OPEN_PORTS_INFO,
                                                         netstat=OPEN_CONNECTIONS_INFO)
-        # self.portscan2 = PortScan.objects.create(device=self.device_no_firewall, scan_info=OPEN_PORTS_INFO,
-        #                                          netstat=OPEN_CONNECTIONS_INFO)
 
         self.device_no_logins = Device.objects.create(
             device_id='device3.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
@@ -412,9 +383,6 @@ class DeviceDetailViewTests(TestCase):
             default_password=True,
             scan_date=timezone.now()  # guarantees that portscan and firewallstate is non None
         )
-        # self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
-        #                                          netstat=OPEN_CONNECTIONS_INFO)
-        # self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
 
     def test_device_detail_not_logged_in(self):
         url = reverse('device-detail', kwargs={'pk': self.device.pk})
@@ -518,7 +486,6 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.device.policy}
         self.client.post(self.url2, form_data)
-        # portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.device.refresh_from_db(fields=['block_ports'])
         self.assertListEqual(self.device.block_ports, [['192.168.1.178', 'tcp', 22, False]])
 
@@ -526,7 +493,6 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         self.client.post(self.url2, form_data)
-        #portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.device.refresh_from_db(fields=['block_networks'])
         self.assertListEqual(self.device.block_networks, [['192.168.1.177', False]])
 
