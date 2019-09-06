@@ -2,7 +2,7 @@ from django import forms
 
 import tagulous.forms
 
-from .models import Device, DeviceInfo
+from .models import Device
 
 
 class ClaimDeviceForm(forms.Form):

@@ -388,12 +388,10 @@ class SignNewDeviceViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 0)
-            # self.assertEqual(DeviceInfo.objects.count(), 0)
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data, 'Unknown error')
             self.assertEqual(Device.objects.count(), 0)
-            # self.assertEqual(DeviceInfo.objects.count(), 0)
 
 
 class RenewExpiredCertViewTest(APITestCase):
@@ -425,7 +423,6 @@ class RenewExpiredCertViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 1)
-            # self.assertEqual(DeviceInfo.objects.count(), 1)
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertDictEqual(response.data, {
@@ -442,7 +439,6 @@ class RenewExpiredCertViewTest(APITestCase):
         post_data = self.post_data.copy()
         post_data['device_id'] = 'no_such_device'
         self.assertEqual(Device.objects.count(), 1)
-        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'device_id': [ErrorDetail(string='Device not found', code='invalid')]})
@@ -451,7 +447,6 @@ class RenewExpiredCertViewTest(APITestCase):
         self.device.certificate_expires = timezone.now() + timezone.timedelta(days=1)
         self.device.save(update_fields=['certificate_expires'])
         self.assertEqual(Device.objects.count(), 1)
-        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, self.post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, 'Certificate is not expired yet')
@@ -460,7 +455,6 @@ class RenewExpiredCertViewTest(APITestCase):
         post_data = self.post_data.copy()
         post_data['fallback_token'] = 'no_such_fallback_token'
         self.assertEqual(Device.objects.count(), 1)
-        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(
@@ -548,7 +542,6 @@ class MtlsCredsViewTest(APITestCase):
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', data={'key2': 'iuoiuoifpojoijccm'},
                                                      tags='Hardware: Raspberry Pi,')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
-        # self.deviceinfo = DeviceInfo.objects.create(device=self.device)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -622,7 +615,6 @@ class MtlsRenewCertViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
-        # DeviceInfo.objects.create(device=self.device)
         self.url = reverse('mtls-sign-device-cert-test')
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -645,7 +637,6 @@ class MtlsRenewCertViewTest(APITestCase):
             uuid4.return_value = self.uuid
 
             self.assertEqual(Device.objects.count(), 1)
-            # self.assertEqual(DeviceInfo.objects.count(), 1)
             response = self.client.post(self.url, self.post_data, **self.headers)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertDictEqual(response.data, {
@@ -656,18 +647,15 @@ class MtlsRenewCertViewTest(APITestCase):
                 'claimed': self.device.claimed
             })
             self.assertEqual(Device.objects.count(), 1)
-            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_wrong_device_id(self):
         post_data = self.post_data.copy()
         post_data['device_id'] = 'no_such_device'
         self.assertEqual(Device.objects.count(), 1)
-        # self.assertEqual(DeviceInfo.objects.count(), 1)
         response = self.client.post(self.url, post_data, **self.headers)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, 'Invalid request.')
         self.assertEqual(Device.objects.count(), 1)
-        # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_invalid_csr(self):
         with patch('device_registry.ca_helper.csr_is_valid') as civ:
@@ -676,7 +664,6 @@ class MtlsRenewCertViewTest(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             self.assertEqual(response.data, 'Invalid CSR.')
             self.assertEqual(Device.objects.count(), 1)
-            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
     def test_post_signing_error(self):
         with patch('device_registry.ca_helper.csr_is_valid') as civ, \
@@ -687,7 +674,6 @@ class MtlsRenewCertViewTest(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data, 'Unknown error')
             self.assertEqual(Device.objects.count(), 1)
-            # self.assertEqual(DeviceInfo.objects.count(), 1)
 
 
 class MtlsPingViewTest(APITestCase):
@@ -737,27 +723,19 @@ class MtlsPingViewTest(APITestCase):
 
     def test_ping_creates_models(self):
         # TODO: change checking methode due to device info
-        # devinfo_obj_count_before = DeviceInfo.objects.count()
-        # portscan_obj_count_before = PortScan.objects.count()
         portscan_obj_count_before = Device.objects.filter(scan_date__isnull=False).count()
         self.client.post(self.url, self.ping_payload, **self.headers)
         portscan_obj_count_after = Device.objects.filter(scan_date__isnull=False).count()
-        #self.assertEqual(devinfo_obj_count_before, 0)
         self.assertEqual(portscan_obj_count_before, 0)
-        #self.assertEqual(devinfo_obj_count_after, 1)
         self.assertEqual(portscan_obj_count_after, 1)
 
     def test_ping_writes_scan_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        # portscan = PortScan.objects.get(device=self.device)
-        # scan_info = portscan.scan_info
         self.device.refresh_from_db()
         self.assertListEqual(self.device.scan_info, OPEN_PORTS_INFO)
 
     def test_ping_writes_netstat(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        # portscan = PortScan.objects.get(device=self.device)
-        # netstat = portscan.netstat
         self.device.refresh_from_db()
         self.assertListEqual(self.device.netstat, OPEN_CONNECTIONS_INFO)
 
@@ -769,7 +747,6 @@ class MtlsPingViewTest(APITestCase):
 
     def test_ping_writes_firewall_info_pos(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
-        # firewall_state = FirewallState.objects.get(device=self.device)
         self.device.refresh_from_db(fields=['rules'])
         self.assertDictEqual(self.device.rules, TEST_RULES)
 
@@ -785,7 +762,6 @@ class MtlsPingViewTest(APITestCase):
         }
         self.client.post(self.url, ping_payload, **self.headers)
         self.device.refresh_from_db(fields=['rules'])
-        #firewall_state = FirewallState.objects.get(device=self.device)
         self.assertDictEqual(self.device.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
 
     def test_ping_converts_json(self):
@@ -808,8 +784,6 @@ class MtlsPingViewTest(APITestCase):
 
         self.client.post(self.url, ping_payload, **self.headers)
         self.device.refresh_from_db(fields=['scan_info', 'rules'])
-        # firewall_state = FirewallState.objects.get(device=self.device)
-        # portscan = PortScan.objects.get(device=self.device)
         self.assertListEqual(scan_info, self.device.scan_info)
         self.assertDictEqual(firewall_rules, self.device.rules)
 

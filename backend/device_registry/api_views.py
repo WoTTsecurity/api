@@ -13,7 +13,6 @@ from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import Q
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from google.cloud import datastore
 from rest_framework import status
@@ -34,7 +33,7 @@ from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSeri
 from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
-from .models import Device, DeviceInfo, Credential, Tag, PairingKey
+from .models import Device, Credential, Tag, PairingKey
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +67,6 @@ class MtlsPingView(APIView):
         device.last_ping = timezone.now()
         device.agent_version = data.get('agent_version')
 
-        # device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
-        # device.device__last_ping = timezone.now()
         device.device_operating_system_version = data.get('device_operating_system_version')
         device.fqdn = data.get('fqdn')
         device.ipv4_address = data.get('ipv4_address')
@@ -81,9 +78,7 @@ class MtlsPingView(APIView):
         device.app_armor_enabled = data.get('app_armor_enabled')
         device.logins = data.get('logins', {})
         device.default_password = data.get('default_password')
-        # device.save()
 
-        #portscan_object, _ = PortScan.objects.get_or_create(device=device)
         scan_info = data.get('scan_info', [])
         if isinstance(scan_info, str):
             scan_info = json.loads(scan_info)
@@ -94,15 +89,11 @@ class MtlsPingView(APIView):
                 record['ip_version'] = ipaddr.version
         device.scan_info = scan_info
         device.netstat = data.get('netstat', [])
-        # firewall_state, _ = FirewallState.objects.get_or_create(device=device)
         firewall_rules = data.get('firewall_rules', {})
         if isinstance(firewall_rules, str):
             firewall_rules = json.loads(firewall_rules)
         device.rules = firewall_rules
         device.scan_date = device.last_ping
-        # firewall_state.save()
-
-        # device.save(update_fields=['last_ping', 'agent_version', 'trust_score', 'rules', 'scan_info', 'netstat'])
         device.save()
 
         if datastore_client:
@@ -142,7 +133,6 @@ class MtlsRenewCertView(APIView):
         serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
                         last_ping=timezone.now(), claim_token=uuid.uuid4(), fallback_token=uuid.uuid4())
 
-        #device_info, _ = DeviceInfo.objects.get_or_create(device=device)
         device.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
         device.device_model = serializer.validated_data.get('device_model', '')
         device.device_operating_system = serializer.validated_data['device_operating_system']
@@ -261,7 +251,6 @@ class RenewExpiredCertView(UpdateAPIView):
         serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
                         last_ping=timezone.now(), claim_token=claim_token, fallback_token=fallback_token)
 
-        #device_info, _ = DeviceInfo.objects.get_or_create(device=device)
         device.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
         device.device_model = serializer.validated_data.get('device_model', '')
         device.device_operating_system = serializer.validated_data['device_operating_system']
@@ -314,17 +303,6 @@ class SignNewDeviceView(CreateAPIView):
         device.ipv4_address = serializer.validated_data['ipv4_address']
 
         device.save()
-
-        # DeviceInfo.objects.create(
-        #     device=device,
-        #     device_manufacturer=serializer.validated_data.get('device_manufacturer', ''),
-        #     device_model=serializer.validated_data.get('device_model', ''),
-        #     device_operating_system=serializer.validated_data['device_operating_system'],
-        #     device_operating_system_version=serializer.validated_data['device_operating_system_version'],
-        #     device_architecture=serializer.validated_data['device_architecture'],
-        #     fqdn=serializer.validated_data['fqdn'],
-        #     ipv4_address=serializer.validated_data['ipv4_address']
-        # )
 
         return Response({
             'certificate': signed_certificate,

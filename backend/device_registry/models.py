@@ -12,7 +12,7 @@ from django.db import transaction
 import yaml
 import tagulous.models
 
-from device_registry import ca_helper, validators
+from device_registry import validators
 
 
 def get_bootstrap_color(val):
@@ -113,8 +113,6 @@ class Device(models.Model):
 
     @property
     def get_portscan(self):
-        # if self.scan_date is None and not self.scan_info and not self.netstat and not self.block_ports and \
-        # not self.block_networks:
         if not self._has_portscan():
             return None
         return {
@@ -128,7 +126,6 @@ class Device(models.Model):
 
     @property
     def get_firewallstate(self):
-        # if self.policy == Device.POLICY_ENABLED_ALLOW and not self.rules and self.scan_date is None:
         if not self._has_firewallstate():
             return None
         return {
@@ -205,7 +202,6 @@ class Device(models.Model):
         return self.fqdn is not None
 
     def get_trust_score(self):
-        # if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
         if not self._has_firewallstate() or not self._has_portscan() or not self._has_deviceinfo():
             return None
 
@@ -229,7 +225,6 @@ class Device(models.Model):
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
-            # port_score=self.portscan.get_score(),
             port_score=self.get_score(),
             default_password=not self.default_password
         )
