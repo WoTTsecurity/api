@@ -53,8 +53,6 @@ class MtlsPingView(APIView):
         device = Device.objects.get(device_id=request.device_id)
         device.last_ping = timezone.now()
         device.save(update_fields=['last_ping'])
-        # portscan_object, _ = PortScan.objects.get_or_create(device=device)
-        # firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
         block_networks = device.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
         return Response({'policy': device.policy_string,
