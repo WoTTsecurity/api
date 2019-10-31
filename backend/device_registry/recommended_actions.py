@@ -315,3 +315,18 @@ class MysqlAction(ActionPerDevice):
 
 
 action_classes.append(MysqlAction)
+
+
+# Default username/password used action.
+class VulnerableCpuAction(ActionMultiDevice):
+    action_id = 11
+    action_title = 'Vulnerable CPU detected'
+    action_description = '<p>We detected that %s CPU is vulnerable to some Meltdown/Spectre family vulnerabilities. ' \
+                         'Please consider fixing them by upgrading software of hardware components.</p>'
+
+    @classmethod
+    def affected_devices(cls, user, device_pk=None):
+        return super().affected_devices(user, device_pk).filter(vulnerable_cpu=True)
+
+
+action_classes.append(VulnerableCpuAction)

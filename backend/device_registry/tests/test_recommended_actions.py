@@ -6,7 +6,7 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction
 from device_registry.recommended_actions import VulnerablePackagesAction, MySQLDefaultRootPasswordAction
 from device_registry.recommended_actions import InsecureServicesAction, OpensshConfigurationIssuesAction
-from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction
+from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction, VulnerableCpuAction
 
 
 class TestsMixin:
@@ -189,3 +189,15 @@ class MysqlActionTest(BaseActionTest, TestsMixin):
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567}
         ]
         self.device.portscan.save(update_fields=['scan_info'])
+
+
+class VulnerableCpuActionTest(BaseActionTest, TestsMixin):
+    search_pattern_common_page = 'We detected that <a href="%s">%s</a> CPU is vulnerable to some Meltdown/Spectre ' \
+                                 'family vulnerabilities'
+    search_pattern_device_page = 'We detected that this node CPU is vulnerable to some Meltdown/Spectre family ' \
+                                 'vulnerabilities'
+    action_class = VulnerableCpuAction
+
+    def enable_action(self):
+        self.device.vulnerable_cpu = True
+        self.device.save(update_fields=['vulnerable_cpu'])

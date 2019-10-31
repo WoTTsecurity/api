@@ -116,6 +116,7 @@ class Device(models.Model):
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
     snoozed_actions = JSONField(blank=True, default=list)
+    vulnerable_cpu = models.BooleanField(null=True, blank=True)
 
     def snooze_action(self, action_id):
         if action_id not in self.snoozed_actions:
