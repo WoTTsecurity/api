@@ -23,13 +23,13 @@
             <a class="list-group-item list-group-item-action" href="{% url 'profile' %}" role="tab">
               Account
             </a>
-            <a class="list-group-item list-group-item-action active" href="{% url 'profile_password' %}" role="tab">
+            <a class="list-group-item list-group-item-action" href="{% url 'profile_password' %}" role="tab">
               Password
             </a>
             <a class="list-group-item list-group-item-action" href="{% url 'profile_token' %}" role="tab">
               API token
             </a>
-            <a class="list-group-item list-group-item-action" href="{% url 'profile_github' %}" role="tab">
+            <a class="list-group-item list-group-item-action active" href="{% url 'profile_github' %}" role="tab">
               GitHub Integration
             </a>
           </div>
@@ -39,10 +39,13 @@
       <div class="col-md-9 col-xl-10">
         <div class="tab-content">
           <div class="tab-pane fade show active" id="account" role="tabpanel">
-
+            <div class="card">
+              <a href="https://github.com/apps/wott-bot/installations/new" class="btn btn-success" target="_blank">
+                Install wott-bot into your repository</a>
+            </div>
             <div class="card">
               <div class="card-header">
-                <h5 class="card-title mb-0">Password</h5>
+                <h5 class="card-title mb-0">Integration parameters</h5>
               </div>
               <div class="card-body">
                 <form method="POST" action="">

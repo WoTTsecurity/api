@@ -18,8 +18,30 @@ from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import ProfileForm, RegistrationForm
+from .forms import ProfileForm, RegistrationForm, GithubInfoForm
 from .models import Profile
+
+
+class ProfileGithubInfoView(LoginRequiredMixin, View):
+
+    def dispatch(self, request, *args, **kwargs):
+        self.profile, _ = Profile.objects.get_or_create(user=request.user)
+        self.initial_form_data = {'name': self.profile.github_name, 'repo': self.profile.github_repo}
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = GithubInfoForm(initial=self.initial_form_data)
+        return render(request, 'profile_github.html', {'form': form})
+
+    def post(self, request, *args, **kwargs):
+        form = GithubInfoForm(request.POST, initial=self.initial_form_data)
+        if form.is_valid():
+            # TODO: check for "if this repo exists and whether wott-bot is installed".
+            self.profile.github_name = form.cleaned_data['name']
+            self.profile.github_repo = form.cleaned_data['repo']
+            self.profile.save(update_fields=['github_name', 'github_repo'])
+            return HttpResponseRedirect(reverse('profile'))
+        return render(request, 'profile_github.html', {'form': form})
 
 
 class ProfileAccountView(LoginRequiredMixin, View):

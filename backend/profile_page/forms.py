@@ -39,3 +39,8 @@ class AuthenticationForm(DjangoAuthenticationForm):
 
     def clean_username(self):
         return self.cleaned_data['username'].lower()
+
+
+class GithubInfoForm(forms.Form):
+    name = forms.CharField(max_length=39, label='GitHub user')
+    repo = forms.CharField(max_length=100, label='GitHub repository')
