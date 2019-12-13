@@ -15,8 +15,9 @@ coreapi==2.3.3
 coreschema==0.0.4
 cryptography==2.4.2
 Django==2.2.11
+dj-stripe==2.1.1
 django-allow-cidr==0.3.1
-django-bootstrap4==1.0.1
+django-bootstrap4==1.1.1
 django-extensions==2.2.1
 django-json-widget==0.2.0
 django-jsonfield==1.0.1

@@ -14,8 +14,8 @@ from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, RecommendedActionStatus, \
-    Device, HistoryRecord, Vulnerability, PairingKey
+from device_registry.models import RecommendedAction, RecommendedActionStatus, Device, HistoryRecord, Vulnerability
+from device_registry.models import PairingKey
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -29,12 +29,10 @@ def user_save_lower(sender, instance, *args, **kwargs):
 class Profile(models.Model):
     PAYMENT_PLAN_FREE = 1
     PAYMENT_PLAN_STANDARD = 2
-    PAYMENT_PLAN_PROFESSIONAL = 3
-    PAYMENT_PLAN_ENTERPRISE = 4
+    PAYMENT_PLAN_ENTERPRISE = 3
     PAYMENT_PLAN_CHOICES = (
-        (PAYMENT_PLAN_FREE, 'Free'),
-        (PAYMENT_PLAN_STANDARD, 'Standard'),
-        (PAYMENT_PLAN_PROFESSIONAL, 'Professional'),
+        (PAYMENT_PLAN_FREE, 'Free (1 node limit)'),
+        (PAYMENT_PLAN_STANDARD, 'Standard (paid per node) with 1 month free trial'),
         (PAYMENT_PLAN_ENTERPRISE, 'Enterprise')
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -48,12 +46,75 @@ class Profile(models.Model):
     github_repo_url = models.URLField(blank=True)
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
+    unlimited_customer = models.BooleanField(default=False)
+
+    @property
+    def paid_devices(self):
+        """
+        Return a list of all (free and paid) devices available for providing paid services/info.
+        """
+        if self.unlimited_customer:
+            return self.user.devices.all()
+        else:
+            return self.user.devices.order_by('pk')[:self.paid_nodes_number + 1]
 
     @property
     def actions_count(self):
         return RecommendedActionStatus.objects.filter(
-            Q(device__owner=self.user) & RecommendedActionStatus.get_affected_query()) \
+            Q(device__in=self.paid_devices) & RecommendedActionStatus.get_affected_query()) \
             .values('ra__pk').distinct().count()
+
+    @property
+    def current_period_end(self):
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            if subscription.status == 'trialing':
+                return subscription.trial_end
+            elif subscription.status == 'active':
+                return subscription.current_period_end
+            else:
+                raise NotImplementedError(f'Subscription status `{subscription.status}` is not supported.')
+
+    @property
+    def subscription_status_text(self):
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            status = subscription.status
+            if subscription.is_status_temporarily_current():
+                status = f'{status} (cancellation scheduled)'
+            return status
+
+    @property
+    def djstripe_customer(self):
+        customers = self.user.djstripe_customers.all()
+        if customers.count() > 1:
+            raise Exception("This user has multiple djstripe customers. Use `self.user.djstripe_customers` "
+                            "to access them.")
+        else:
+            return customers.first()
+
+    @property
+    def has_active_subscription(self):
+        """
+        Check if a user has an active subscription.
+        """
+        customer = self.djstripe_customer
+        if customer and customer.has_active_subscription():
+            return True
+        else:
+            return False
+
+    @property
+    def paid_nodes_number(self):
+        """
+        Return the number of nodes a user has an active subscription for.
+        It's supposed one user has only one Stripe customer instance and one Stripe subscription.
+        """
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            if subscription and subscription.quantity > 0:
+                return subscription.quantity
+        return 0
 
     @property
     def actions_weekly(self):
