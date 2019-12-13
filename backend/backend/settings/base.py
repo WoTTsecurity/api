@@ -70,7 +70,8 @@ INSTALLED_APPS = [
     'profile_page.apps.ProfilePageConfig',
     'monitoring.apps.MonitoringConfig',
     'bootstrap4',
-    'phonenumber_field'
+    'phonenumber_field',
+    'djstripe'
 ]
 
 MIDDLEWARE = [
@@ -287,3 +288,13 @@ GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')  # Github app name (wott-bot)
 GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID
 GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Client Secret
 GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL
+
+# Stripe settings.
+STRIPE_LIVE_PUBLIC_KEY = None
+STRIPE_LIVE_SECRET_KEY = None
+STRIPE_TEST_PUBLIC_KEY = 'pk_test_380KNHna4diAHvGVsucQ3pel00xbqUaSQf'
+STRIPE_TEST_SECRET_KEY = 'sk_test_fICt6Rar7IYLVSvBYncQSGja00dXMw2Ufs'
+STRIPE_LIVE_MODE = False  # Change to True in production
+DJSTRIPE_WEBHOOK_SECRET = 'whsec_KJPxeCf0oTnSw6ZGP9Kiqm7Mf5E6mnom'  # Not used!
+DJSTRIPE_PRORATION_POLICY = True
+WOTT_STANDARD_PLAN_ID = 'plan_GLUYYLh2OnuJwI'

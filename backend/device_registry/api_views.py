@@ -1,7 +1,6 @@
 import json
 import logging
 import uuid
-import datetime
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -12,7 +11,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import Q
 
 from google.cloud import datastore
 from rest_framework import status
@@ -34,8 +32,9 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage,\
-    RecommendedAction
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy
+from .models import DebPackage, RecommendedAction
+from .mixins import DeviceListFilterMixin, CredentialsQSMixin, PairingKeysQSMixin
 
 logger = logging.getLogger(__name__)
 
@@ -481,11 +480,6 @@ class DeviceListView(ListAPIView):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
 
 
-class CredentialsQSMixin(object):
-    def get_queryset(self):
-        return self.request.user.credentials.all()
-
-
 class CredentialsView(CredentialsQSMixin, ListAPIView):
     """
     Return all current user's credentials.
@@ -654,11 +648,6 @@ def autocomplete_tags(request):
     )
 
 
-class PairingKeysQSMixin(object):
-    def get_queryset(self):
-        return self.request.user.pairing_keys.all()
-
-
 class PairingKeyListView(PairingKeysQSMixin, ListAPIView):
     """
     Return all current user's pairing keys
@@ -816,153 +805,6 @@ class BatchUpdateTagsView(APIView):
         verb = "Added" if action == 'add' else 'Set'
         msg = f"{verb} tags to {objects.count()} {model_name}s."
         return Response(msg, status=status.HTTP_200_OK)
-
-
-class DeviceListFilterMixin:
-    """
-    Mixin with device list filtering functionality
-    """
-    FILTER_FIELDS = {
-        'device-name': (
-            ['deviceinfo__fqdn', 'name'],
-            'Node Name',
-            'str'
-        ),
-        'hostname': (
-            'deviceinfo__fqdn',
-            'Hostname',
-            'str'
-        ),
-        'comment': (
-            'comment',
-            'Comment',
-            'str'
-        ),
-        'last-ping': (
-            'last_ping',
-            'Last Ping',
-            'datetime'
-        ),
-        'trust-score': (
-            'trust_score',
-            'Trust Score',
-            'float'
-        ),
-        'default-credentials': (
-            'deviceinfo__default_password',
-            'Default Credentials Found',
-            'bool'
-        ),
-        'tags': (
-            'tags__name',
-            'Tags',
-            'tags'
-        )
-    }
-    PREDICATES = {
-        'str': {
-            'eq': 'iexact',
-            'c': 'icontains'
-        },
-        'tags': {
-            'c': 'in'
-        },
-        'float': {
-            'eq': 'exact',
-            'lt': 'lt',
-            'gt': 'gt'
-        },
-        'datetime': {
-            'eq': 'exact',
-            'lt': 'lt',
-            'gt': 'gt'
-        },
-        'bool': {
-            'eq': 'exact'
-        }
-    }
-
-    def get_filter_q(self, set_filter_dict=False, *args, **kwargs):
-        """
-        Create Device List Filter Query Object
-        GET params:
-        filter_by : filter field argument. (see self.FILTER_FIELDS)
-        filter_value: value used for filtering
-        filter_predicate:
-                "eq" - matches
-                "neq" - not matches
-                "c" - contains
-                "nc" - not contains
-                "lt" - greater than
-                "gt" - less than
-        :return: Q object
-        """
-        query = Q()
-        filter_by = self.request.GET.get('filter_by')
-        filter_predicate = self.request.GET.get('filter_predicate')
-        filter_value = self.request.GET.get('filter_value')
-
-        if filter_by and filter_predicate:
-            if filter_by not in self.FILTER_FIELDS:
-                raise ValidationError('filter subject is invalid.')
-
-            query_by, _, query_type = self.FILTER_FIELDS[filter_by]
-            invert = filter_predicate[0] == 'n'
-            if invert:
-                filter_predicate = filter_predicate[1:]
-            if filter_predicate not in ['', 'eq', 'c', 'lt', 'gt']:
-                raise ValidationError('filter predicate is invalid.')
-
-            predicate = self.PREDICATES[query_type][filter_predicate]
-            if query_type != 'str' and not filter_value:
-                filter_value = None
-            if set_filter_dict:
-                self.filter_dict = {
-                    'by': filter_by,
-                    'predicate': filter_predicate,
-                    'value': filter_value,
-                    'type': query_type
-                }
-
-            if query_type == 'datetime':
-                if ',' not in filter_value:
-                    raise ValidationError('invalid datetime interval argument format.')
-                parts = filter_value.split(',')
-                if len(parts) != 2:
-                    raise ValidationError('invalid datetime interval argument parts.')
-                number, measure = parts
-                if not number:
-                    number = '0'
-                if not number.isdigit() or measure not in ['hours', 'days']:
-                    raise ValidationError('datetime interval argument is invalid.')
-
-                number = int(number)
-                if filter_predicate == 'eq':
-                    interval_start = timezone.now() - datetime.timedelta(**{measure: number + 1})
-                    interval_end = timezone.now() - datetime.timedelta(**{measure: number})
-                    filter_value = (interval_start, interval_end)
-                    predicate = 'range'
-                else:
-                    filter_value = timezone.now() - datetime.timedelta(**{measure: number})
-            elif query_type == 'tags':
-                filter_value = filter_value.split(',') if filter_value else []
-                if filter_value:
-                    if len(filter_value) != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
-                        raise ValidationError('tags argument list is invalid.')
-
-            if isinstance(query_by, list):
-                query = Q()
-                for field in query_by:
-                    query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
-            else:
-                query = Q(**{f'{query_by}__{predicate}': filter_value})
-
-            if invert:
-                query = ~query
-        else:
-            if set_filter_dict:
-                self.filter_dict = None
-        return query
 
 
 class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):

@@ -12,7 +12,6 @@
       <div class="row h-100">
         <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
           <div class="d-table-cell align-middle">
-
             <div class="text-center mt-4">
               <h1 class="h2">Register</h1>
               <p class="lead">
@@ -22,9 +21,23 @@
             <div class="card">
               <div class="card-body">
                 <div class="m-sm-4">
-                  <form method="post" action="">
+                  <form method="post" action="" id="id_registration_form">
                     {% csrf_token %}
-                    {% bootstrap_form form %}
+                    {% bootstrap_field form.email %}
+                    {% bootstrap_field form.password1 %}
+                    {% bootstrap_field form.password2 %}
+                    {% bootstrap_field form.first_name %}
+                    {% bootstrap_field form.last_name %}
+                    {% bootstrap_field form.company %}
+                    {% bootstrap_field form.phone %}
+                    {% bootstrap_field form.payment_plan %}
+                    {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
+                    {% bootstrap_field form.stripe_source %}
+                    <div class="free-hidden form-group d-none">
+                      <label for="id_card_element">Credit or debit card</label>
+                      <div id="id_card_element"></div>
+                      <div id="id_card_errors" role="alert"></div>
+                    </div>
                     {% buttons %}
                       <button type="submit" class="btn btn-lg btn-primary">{% trans 'Submit' %}</button>
                     {% endbuttons %}
@@ -38,3 +51,69 @@
     </div>
   </main>
 {% endblock content %}
+
+{% block js %}
+  {{ block.super }}
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+      // Show/hide paid tier related fields.
+      $('#id_payment_plan').change(function () {
+          if ($('#id_payment_plan').val() === '1') {
+              $('.free-hidden').addClass('d-none');
+          } else {
+              $('.free-hidden').removeClass('d-none');
+          }
+      });
+
+      // Stripe related stuff.
+      var form = document.getElementById('id_registration_form');
+      var errorElement = document.getElementById('id_card_errors');
+      // Create a Stripe client.
+      var stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+      // Create an instance of Elements.
+      var elements = stripe.elements();
+
+      // Create an instance of the card Element.
+      var card = elements.create('card');
+
+      // Add an instance of the card Element into the `id_card_element` <div>.
+      card.mount('#id_card_element');
+
+      // Handle real-time validation errors from the card Element.
+      card.addEventListener('change', function (event) {
+          if (event.error) {
+              errorElement.textContent = event.error.message;
+          } else {
+              errorElement.textContent = '';
+          }
+      });
+
+      // Handle form submission.
+      form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          stripe.createSource(card).then(function (result) {
+              if (result.error) {
+                  // Inform the user if there was an error.
+                  errorElement.textContent = result.error.message;
+              } else {
+                  // Send the token to your server.
+                  stripeSourceHandler(result.source);
+              }
+          });
+      });
+
+      // Submit the form with the source ID.
+      function stripeSourceHandler(source) {
+          // Insert the source ID into the form so it gets submitted to the server.
+          var hiddenInput = form.elements["stripe_source"];
+          hiddenInput.setAttribute('value', source.id);
+          // Submit the form.
+          form.submit();
+      }
+  </script>
+{% endblock %}

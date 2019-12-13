@@ -8,9 +8,11 @@ from django.db.models import Q, Avg
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
+import djstripe.models
 
 from device_registry.models import RecommendedAction, Device, HistoryRecord
 from device_registry.celery_tasks import github
@@ -26,12 +28,10 @@ def user_save_lower(sender, instance, *args, **kwargs):
 class Profile(models.Model):
     PAYMENT_PLAN_FREE = 1
     PAYMENT_PLAN_STANDARD = 2
-    PAYMENT_PLAN_PROFESSIONAL = 3
-    PAYMENT_PLAN_ENTERPRISE = 4
+    PAYMENT_PLAN_ENTERPRISE = 3
     PAYMENT_PLAN_CHOICES = (
-        (PAYMENT_PLAN_FREE, 'Free'),
-        (PAYMENT_PLAN_STANDARD, 'Standard'),
-        (PAYMENT_PLAN_PROFESSIONAL, 'Professional'),
+        (PAYMENT_PLAN_FREE, 'Free (1 node limit)'),
+        (PAYMENT_PLAN_STANDARD, 'Standard (paid per-node) with 1 month free trial'),
         (PAYMENT_PLAN_ENTERPRISE, 'Enterprise')
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -46,6 +46,30 @@ class Profile(models.Model):
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
     github_issues = JSONField(blank=True, default=dict)
+
+    @cached_property
+    def has_active_subscription(self):
+        """
+        Check if a user has an active subscription.
+        """
+        customer, created = djstripe.models.Customer.get_or_create(self.user)
+        if created or not customer.has_active_subscription():
+            return False
+        return True
+
+    @cached_property
+    def paid_nodes_number(self):
+        """
+        Return the number of nodes a user has an active subscription for.
+        It's supposed one user has only one Stripe customer instance and one Stripe subscription.
+        """
+        if self.has_active_subscription:
+            customer, created = djstripe.models.Customer.get_or_create(self.user)
+            if not created:
+                subscription = customer.subscription
+                if subscription and subscription.quantity > 0:
+                    return subscription.quantity
+        return 0
 
     @property
     def actions_count(self):
@@ -95,4 +119,3 @@ class Profile(models.Model):
         HistoryRecord.objects.create(owner=self.user,
                                      recommended_actions_resolved=ra_resolved.count(),
                                      average_trust_score=self.average_trust_score)
-

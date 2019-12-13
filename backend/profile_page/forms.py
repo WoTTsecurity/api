@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm as DjangoAuthenticationForm
+from django.contrib.auth.forms import PasswordChangeForm as DjangoPasswordChangeForm
 
 from registration.forms import RegistrationFormUniqueEmail, User
 
@@ -8,14 +9,42 @@ from phonenumber_field.formfields import PhoneNumberField
 from .models import Profile
 
 
+class ProfileModelForm(forms.ModelForm):
+    nodes_number = forms.IntegerField(min_value=1, required=False, label='Nodes number (besides 1 given for free)')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['payment_plan'].choices = Profile.PAYMENT_PLAN_CHOICES[:2]
+        for field_name in self.fields:
+            self.fields[field_name].widget.attrs['placeholder'] = ''
+
+    class Meta:
+        model = Profile
+        fields = ['payment_plan']
+
+
+class PasswordChangeForm(DjangoPasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].widget.attrs['placeholder'] = ''
+
+
 class ProfileForm(forms.Form):
     username = forms.CharField(disabled=True)
     payment_plan = forms.CharField(disabled=True)
+    nodes_number = forms.IntegerField(required=False, label='Paid nodes number (besides 1 given for free)',
+                                      disabled=True, widget=forms.NumberInput(attrs={'placeholder': ''}))
     email = forms.EmailField()
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=150, required=False)
     company = forms.CharField(max_length=128, required=False)
     phone = PhoneNumberField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].widget.attrs['placeholder'] = ''
 
 
 class RegistrationForm(RegistrationFormUniqueEmail):
@@ -26,7 +55,15 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     last_name = forms.CharField(max_length=150, required=False, label='Last name (optional)')
     company = forms.CharField(max_length=128, required=False, label='Company (optional)')
     phone = PhoneNumberField(required=False, label='Phone (optional)')
-    payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES)
+    payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES[:2])
+    nodes_number = forms.IntegerField(min_value=1, initial=1, required=False,
+                                      label='Nodes number (besides 1 given for free)')
+    stripe_source = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].widget.attrs['placeholder'] = ''
 
     class Meta:
         model = User
