@@ -34,10 +34,10 @@
                href="{% url 'profile_token' %}" role="tab">
               API Token
             </a>
-            <a class="list-group-item list-group-item-action {{ tab_github_integration }}"
+            <a class="list-group-item list-group-item-action {{ tab_github_integration }} wott-list-group-item-with-badge"
                href="{% url 'github_integration' %}" role="tab">
-              <span class="badge badge-danger wott-badge-position">Beta</span>
-              GitHub Integration
+               GitHub Integration
+               <span class="badge badge-danger wott-badge-position">Beta</span>
             </a>
             <a class="list-group-item list-group-item-action {{ tab_slack_integration }}"
                href="{% url 'slack_integration' %}" role="tab">
