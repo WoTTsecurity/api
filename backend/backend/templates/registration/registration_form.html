@@ -60,32 +60,37 @@
 {% block scripts %}
   {{ block.super }}
   <script>
+      let handle_stripe_submission = false;
       // Show/hide paid tier related fields.
       $('#id_payment_plan').change(function () {
           if ($('#id_payment_plan').val() === '1') {
+              // Credit card info gets hidden
               $('.free-hidden').addClass('d-none');
+              handle_stripe_submission = false;
           } else {
+              // Credit card info gets shown
               $('.free-hidden').removeClass('d-none');
+              handle_stripe_submission = true;
           }
       });
 
       // Stripe related stuff.
-      var form = document.getElementById('id_registration_form');
-      var errorElement = document.getElementById('id_card_errors');
+      let form = document.getElementById('id_registration_form'),
+          errorElement = document.getElementById('id_card_errors');
       // Create a Stripe client.
-      var stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+      let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
 
       // Create an instance of Elements.
-      var elements = stripe.elements();
+      let elements = stripe.elements();
 
       // Create an instance of the card Element.
-      var card = elements.create('card');
+      let card = elements.create('card');
 
       // Add an instance of the card Element into the `id_card_element` <div>.
       card.mount('#id_card_element');
 
       // Handle real-time validation errors from the card Element.
-      card.addEventListener('change', function (event) {
+      card.on('change', (event) => {
           if (event.error) {
               errorElement.textContent = event.error.message;
           } else {
@@ -94,7 +99,12 @@
       });
 
       // Handle form submission.
-      form.addEventListener('submit', function (event) {
+      $(form).on('submit', (event) => {
+          if(!handle_stripe_submission) {
+              console.log('NOT DOING STRIPE STUFF');
+              return;
+          }
+          console.log('DOING STRIPE STUFF...');
           event.preventDefault();
           stripe.createSource(card).then(function (result) {
               if (result.error) {
