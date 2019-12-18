@@ -56,8 +56,7 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     company = forms.CharField(max_length=128, required=False, label='Company (optional)')
     phone = PhoneNumberField(required=False, label='Phone (optional)')
     payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES[:2])
-    nodes_number = forms.IntegerField(min_value=1, initial=1, required=False,
-                                      label='Nodes number (besides 1 given for free)')
+    nodes_number = forms.IntegerField(min_value=1, initial=1, label='Nodes number (besides 1 given for free)')
     stripe_source = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):

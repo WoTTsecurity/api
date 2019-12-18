@@ -23,6 +23,7 @@
                 <div class="m-sm-4">
                   <form method="post" action="" id="id_registration_form">
                     {% csrf_token %}
+                    <input type="hidden" value=1 id="remembered-nodes-number">
                     {% bootstrap_field form.email %}
                     {% bootstrap_field form.password1 %}
                     {% bootstrap_field form.password2 %}
@@ -61,14 +62,21 @@
   {{ block.super }}
   <script>
       let handle_stripe_submission = false;
+      if ($('#id_payment_plan').val() !== '1') {
+          $('.free-hidden').removeClass('d-none');
+          handle_stripe_submission = true;
+      }
       // Show/hide paid tier related fields.
       $('#id_payment_plan').change(function () {
           if ($('#id_payment_plan').val() === '1') {
               // Credit card info gets hidden
               $('.free-hidden').addClass('d-none');
+              $('#remembered-nodes-number').val($('#id_nodes_number').val());
+              $('#id_nodes_number').val(1);
               handle_stripe_submission = false;
           } else {
               // Credit card info gets shown
+              $('#id_nodes_number').val($('#remembered-nodes-number').val());
               $('.free-hidden').removeClass('d-none');
               handle_stripe_submission = true;
           }
@@ -100,11 +108,9 @@
 
       // Handle form submission.
       $(form).on('submit', (event) => {
-          if(!handle_stripe_submission) {
-              console.log('NOT DOING STRIPE STUFF');
+          if (!handle_stripe_submission) {
               return;
           }
-          console.log('DOING STRIPE STUFF...');
           event.preventDefault();
           stripe.createSource(card).then(function (result) {
               if (result.error) {
