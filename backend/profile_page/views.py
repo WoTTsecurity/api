@@ -285,6 +285,10 @@ class PaymentPlanView(LoginRequiredMixin, LoginTrackMixin, UpdateView):
                 subscription = customer.subscription
                 # TODO: create subscription if it's missing.
                 subscription.update(quantity=nodes_number)
+                # Automatically immediately charge a customer's card for increased number of items in his subscription,
+                # or put (for paying future invoices from it as a 1st source) the extra money to his Stripe balance
+                # (in case of reduced number of items).
+                customer.send_invoice()
         #######
         return HttpResponseRedirect(self.get_success_url())
 

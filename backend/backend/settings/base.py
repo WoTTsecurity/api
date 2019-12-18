@@ -297,4 +297,5 @@ STRIPE_TEST_SECRET_KEY = 'sk_test_fICt6Rar7IYLVSvBYncQSGja00dXMw2Ufs'
 STRIPE_LIVE_MODE = False  # Change to True in production
 DJSTRIPE_WEBHOOK_SECRET = 'whsec_KJPxeCf0oTnSw6ZGP9Kiqm7Mf5E6mnom'  # Not used!
 DJSTRIPE_PRORATION_POLICY = True
-WOTT_STANDARD_PLAN_ID = 'plan_GLUYYLh2OnuJwI'
+# WOTT_STANDARD_PLAN_ID = 'plan_GLUYYLh2OnuJwI'  # With 30d trial.
+WOTT_STANDARD_PLAN_ID = 'plan_GNgOchjZ4tXkQO'  # Without trial.
