@@ -22,6 +22,7 @@
               <div class="card-body">
                 <div class="m-sm-4">
                   <form method="post" action="" id="id_registration_form">
+                    {% bootstrap_form_errors form type='non_fields' %}
                     {% csrf_token %}
                     <input type="hidden" value=1 id="remembered-nodes-number">
                     {% bootstrap_field form.email %}
@@ -33,7 +34,7 @@
                     {% bootstrap_field form.phone %}
                     {% bootstrap_field form.payment_plan %}
                     {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
-                    {% bootstrap_field form.stripe_source %}
+                    {% bootstrap_field form.payment_method_id %}
                     <div class="free-hidden form-group d-none">
                       <label for="id_card_element">Credit or debit card</label>
                       <div id="id_card_element"></div>
@@ -62,6 +63,7 @@
   {{ block.super }}
   <script>
       let handle_stripe_submission = false;
+      // Show hidden section after page reload (due failed form validation by Django) if it's needed.
       if ($('#id_payment_plan').val() !== '1') {
           $('.free-hidden').removeClass('d-none');
           handle_stripe_submission = true;
@@ -83,19 +85,36 @@
       });
 
       // Stripe related stuff.
-      let form = document.getElementById('id_registration_form'),
-          errorElement = document.getElementById('id_card_errors');
+      let form = document.getElementById('id_registration_form');
+      let errorElement = document.getElementById('id_card_errors');
       // Create a Stripe client.
       let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
 
       // Create an instance of Elements.
       let elements = stripe.elements();
 
+      const style = {
+          base: {
+              color: '#32325d',
+              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+              fontSmoothing: 'antialiased',
+              fontSize: '16px',
+              '::placeholder': {
+                  color: '#aab7c4'
+              }
+          },
+          invalid: {
+              color: '#fa755a',
+              iconColor: '#fa755a'
+          }
+      };
+
       // Create an instance of the card Element.
-      let card = elements.create('card');
+      let card = elements.create('card', {style: style});
 
       // Add an instance of the card Element into the `id_card_element` <div>.
       card.mount('#id_card_element');
+
 
       // Handle real-time validation errors from the card Element.
       card.on('change', (event) => {
@@ -112,24 +131,22 @@
               return;
           }
           event.preventDefault();
-          stripe.createSource(card).then(function (result) {
+          stripe.createPaymentMethod('card', card, {
+              // TODO: check if it works without this.
+              //billing_details: {name: 'Ivan Ivanov'}  // TODO: remove/update this.
+              billing_details: {email: 'jenny.rosen2@example.com'}  // TODO: remove/update this.
+          }).then(function (result) {
               if (result.error) {
                   // Inform the user if there was an error.
                   errorElement.textContent = result.error.message;
               } else {
-                  // Send the token to your server.
-                  stripeSourceHandler(result.source);
+                  // Save Stripe payment id to the hidden field.
+                  var hiddenInput = form.elements["payment_method_id"];
+                  hiddenInput.setAttribute('value', result.paymentMethod.id);
+                  // Submit the form.
+                  form.submit();
               }
           });
       });
-
-      // Submit the form with the source ID.
-      function stripeSourceHandler(source) {
-          // Insert the source ID into the form so it gets submitted to the server.
-          var hiddenInput = form.elements["stripe_source"];
-          hiddenInput.setAttribute('value', source.id);
-          // Submit the form.
-          form.submit();
-      }
   </script>
 {% endblock %}

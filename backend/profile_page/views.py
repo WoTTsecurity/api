@@ -8,7 +8,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -25,7 +25,7 @@ import djstripe.models
 import djstripe.settings
 
 from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm, ProfileModelForm
-from .mixins import LoginTrackMixin
+from .mixins import LoginTrackMixin, StripeContextMixin
 from .models import Profile
 
 
@@ -108,13 +108,13 @@ class RevokeAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
         return HttpResponseRedirect(reverse('profile_token'))
 
 
-class RegistrationView(BaseRegistrationView):
+class RegistrationView(StripeContextMixin, BaseRegistrationView):
     """Overwritten standard registration view from the 'django-registration-redux' 3rd party app."""
     success_url = '/'
     form_class = RegistrationForm
     template_name = 'registration/registration_form.html'
 
-    def register(self, form):
+    def form_valid(self, form):
         new_user = form.save(commit=False)
         username_field = getattr(new_user, 'USERNAME_FIELD', 'username')
         # Save lowercased email as username.
@@ -134,13 +134,12 @@ class RegistrationView(BaseRegistrationView):
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
                                  'Congratulations! We won\'t charge you for this plan for now.')
-        #################
-        # # TODO: properly handle free tier case.
+
         # Create the stripe Customer.
-        nodes_number = form.cleaned_data.get('nodes_number')
-        stripe_source = form.cleaned_data.get('stripe_source')
-        if profile.payment_plan == Profile.PAYMENT_PLAN_STANDARD and nodes_number is not None and \
-                stripe_source is not None:
+        if profile.payment_plan == Profile.PAYMENT_PLAN_STANDARD:
+            nodes_number = form.cleaned_data['nodes_number']
+            payment_method_id = form.cleaned_data['payment_method_id']
+
             # Collect customer's info for Stripe.
             name = ('%s %s' % (form.cleaned_data.get('first_name', ''),
                                form.cleaned_data.get('last_name', ''))).strip()
@@ -148,36 +147,71 @@ class RegistrationView(BaseRegistrationView):
             if company:
                 name += ' (%s)' % company
             # Create a Stripe customer.
+            action = 'create:{}'.format(new_user.pk)
+            idempotency_key = djstripe.settings.get_idempotency_key(
+                'customer', action, djstripe.settings.STRIPE_LIVE_MODE)
+            metadata = {}
+            subscriber_key = djstripe.settings.SUBSCRIBER_CUSTOMER_KEY
+            if subscriber_key not in ('', None):
+                metadata[subscriber_key] = new_user.pk
             stripe_customer = djstripe.models.Customer._api_create(
+                idempotency_key=idempotency_key,
+                metadata=metadata,
                 email=new_user.email,
                 phone=form.cleaned_data.get('phone'),
-                name=name if name else None
+                name=name if name else None,
+                payment_method=payment_method_id,
+                invoice_settings={'default_payment_method': payment_method_id}
             )
             # Create models instance for the customer.
             customer, created = djstripe.models.Customer.objects.get_or_create(
-                id=stripe_customer["id"],
+                id=stripe_customer['id'],
                 defaults={
-                    "subscriber": new_user,
-                    "livemode": stripe_customer["livemode"],
-                    "balance": stripe_customer.get("balance", 0),
-                    "delinquent": stripe_customer.get("delinquent", False),
-                },
+                    'subscriber': new_user,
+                    'livemode': stripe_customer['livemode'],
+                    'balance': stripe_customer.get('balance', 0),
+                    'delinquent': stripe_customer.get('delinquent', False)
+                }
             )
-            # Add the source as the customer's default card
-            customer.add_card(stripe_source)
+
             # Using the Stripe API, create a subscription for this customer,
             # using the customer's default payment source
             stripe_subscription = stripe.Subscription.create(customer=customer.id,
                                                              billing='charge_automatically',
+                                                             # billing='send_invoice',  # TEMP!
+                                                             # days_until_due=2,  # TEMP!
                                                              plan=settings.WOTT_STANDARD_PLAN_ID,
                                                              quantity=nodes_number,
-                                                             trial_from_plan=True,
+                                                             # trial_from_plan=True,
+                                                             expand=['latest_invoice.payment_intent'],
                                                              api_key=djstripe.settings.STRIPE_SECRET_KEY)
             # Sync the Stripe API return data to the database,
             # this way we don't need to wait for a webhook-triggered sync
-            djstripe.models.Subscription.sync_from_stripe_data(stripe_subscription)
-        #################
-        return new_user
+            subscription = djstripe.models.Subscription.sync_from_stripe_data(stripe_subscription)
+            # Load automatically created (with the subscription) invoice info from Stripe.
+            customer._sync_invoices(subscription=subscription.id)
+            if subscription.status in ('active', 'trialing'):
+                pass
+            elif subscription.status == 'incomplete':
+                invoice = subscription.invoices.order_by('-pk')[0]
+                if invoice.payment_intent.status == 'requires_action' and \
+                        invoice.payment_intent.next_action['type'] == 'use_stripe_sdk':
+                    # Tell the client to handle the action
+                    return render(self.request, 'card_action.html',
+                                  {'STRIPE_PUBLIC_KEY': djstripe.settings.STRIPE_PUBLIC_KEY,
+                                   'payment_intent_client_secret': invoice.payment_intent.client_secret})
+                else:
+                    raise NotImplementedError
+            else:
+                raise NotImplementedError
+
+        success_url = self.get_success_url(new_user)
+        try:
+            to, args, kwargs = success_url
+        except ValueError:
+            return redirect(success_url)
+        else:
+            return redirect(to, *args, **kwargs)
 
     def get_initial(self):
         """
@@ -188,17 +222,6 @@ class RegistrationView(BaseRegistrationView):
          while redirected from the project site.
         """
         return {'payment_plan': self.request.GET.get('plan')}
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if not djstripe.models.Plan.objects.exists():
-            raise Exception(
-                "No Product Plans in the dj-stripe database - create some in your "
-                "stripe account and then "
-                "run `./manage.py djstripe_sync_plans_from_stripe` "
-                "(or use the dj-stripe webhooks)")
-        context["STRIPE_PUBLIC_KEY"] = djstripe.settings.STRIPE_PUBLIC_KEY
-        return context
 
 
 class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):

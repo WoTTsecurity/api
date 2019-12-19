@@ -57,12 +57,21 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     phone = PhoneNumberField(required=False, label='Phone (optional)')
     payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES[:2])
     nodes_number = forms.IntegerField(min_value=1, initial=1, label='Nodes number (besides 1 given for free)')
-    stripe_source = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
+    payment_method_id = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
             self.fields[field_name].widget.attrs['placeholder'] = ''
+
+    def clean(self):
+        self._validate_unique = True
+        # Validate `payment_method_id` field's value if chosen plan is not free.
+        if int(self.cleaned_data['payment_plan']) != Profile.PAYMENT_PLAN_FREE:
+            payment_method_id = self.cleaned_data.get('payment_method_id', '').strip()
+            if not payment_method_id or not payment_method_id.startswith('pm_'):
+                raise forms.ValidationError('Wrong card info provided.')
+        return self.cleaned_data
 
     class Meta:
         model = User
