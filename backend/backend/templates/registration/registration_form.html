@@ -131,11 +131,7 @@
               return;
           }
           event.preventDefault();
-          stripe.createPaymentMethod('card', card, {
-              // TODO: check if it works without this.
-              //billing_details: {name: 'Ivan Ivanov'}  // TODO: remove/update this.
-              billing_details: {email: 'jenny.rosen2@example.com'}  // TODO: remove/update this.
-          }).then(function (result) {
+          stripe.createPaymentMethod('card', card).then(function (result) {
               if (result.error) {
                   // Inform the user if there was an error.
                   errorElement.textContent = result.error.message;

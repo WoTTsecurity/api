@@ -9,7 +9,7 @@
 <div id="id_card_errors" role="alert"></div>
 <script>
     let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
-    stripe.confirmCardPayment(
+    stripe.confirmCard{% if setup %}Setup{% else %}Payment{% endif %}(
         '{{ payment_intent_client_secret }}'
     ).then(function (result) {
             if (result.error) {

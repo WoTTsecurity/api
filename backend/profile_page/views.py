@@ -163,7 +163,7 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
                 payment_method=payment_method_id,
                 invoice_settings={'default_payment_method': payment_method_id}
             )
-            # Create models instance for the customer.
+            # Create djstripe model's instance for the customer.
             customer, created = djstripe.models.Customer.objects.get_or_create(
                 id=stripe_customer['id'],
                 defaults={
@@ -182,7 +182,7 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
                                                              # days_until_due=2,  # TEMP!
                                                              plan=settings.WOTT_STANDARD_PLAN_ID,
                                                              quantity=nodes_number,
-                                                             # trial_from_plan=True,
+                                                             trial_from_plan=True,
                                                              expand=['latest_invoice.payment_intent'],
                                                              api_key=djstripe.settings.STRIPE_SECRET_KEY)
             # Sync the Stripe API return data to the database,
@@ -190,21 +190,29 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
             subscription = djstripe.models.Subscription.sync_from_stripe_data(stripe_subscription)
             # Load automatically created (with the subscription) invoice info from Stripe.
             customer._sync_invoices(subscription=subscription.id)
-            if subscription.status in ('active', 'trialing'):
-                pass
-            elif subscription.status == 'incomplete':
-                invoice = subscription.invoices.order_by('-pk')[0]
-                if invoice.payment_intent.status == 'requires_action' and \
-                        invoice.payment_intent.next_action['type'] == 'use_stripe_sdk':
-                    # Tell the client to handle the action
-                    return render(self.request, 'card_action.html',
-                                  {'STRIPE_PUBLIC_KEY': djstripe.settings.STRIPE_PUBLIC_KEY,
-                                   'payment_intent_client_secret': invoice.payment_intent.client_secret})
-                else:
-                    raise NotImplementedError
-            else:
-                raise NotImplementedError
 
+            if subscription.status == 'active':
+                pass
+            elif subscription.status in ('trialing', 'incomplete'):
+                if subscription.status == 'trialing':
+                    intent = subscription.pending_setup_intent
+                    setup = True
+                else:
+                    intent = subscription.invoices.order_by('-pk')[0].payment_intent
+                    setup = False
+                if intent.status == 'requires_action' and intent.next_action['type'] == 'use_stripe_sdk':
+                    # Tell the client to handle the action.
+                    return render(self.request, 'card_action.html',
+                                  {'STRIPE_PUBLIC_KEY': djstripe.settings.STRIPE_PUBLIC_KEY, 'setup': setup,
+                                   'payment_intent_client_secret': intent.client_secret})
+                else:
+                    raise NotImplementedError(f'Subscription status `{subscription.status}` with the intent status '
+                                              f'`{intent.status}` with the next action type '
+                                              f'`{intent.next_action["type"]}` are not supported yet.')
+            else:
+                raise NotImplementedError(f'Subscription status `{subscription.status}` is not supported yet.')
+
+        # Standard redirect logic.
         success_url = self.get_success_url(new_user)
         try:
             to, args, kwargs = success_url
