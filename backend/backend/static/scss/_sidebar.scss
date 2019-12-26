@@ -2,11 +2,11 @@
   min-width: $sidebar-width;
   max-width: $sidebar-width;
   transition: $sidebar-transition;
-  background: $sidebar-bg;
+  background-image:linear-gradient(to bottom, white , #E7EEFF);
 }
 
 .sidebar-content {
-  background: $sidebar-bg;
+  background-image:linear-gradient(to bottom, white , #E7EEFF);
   transition: $sidebar-transition;
 }
 
@@ -72,7 +72,14 @@ a.sidebar-link {
 .sidebar-dropdown .sidebar-link:hover {
   color: $sidebar-link-child-hover-color;
   background: $sidebar-link-child-hover-bg;
+  
 }
+
+.sidebar-item.active > .sidebar-link {
+  border-right: 7px solid #2460C7;
+  background:$white;
+}
+
 
 // Chevron
 .sidebar [data-toggle="collapse"] {
@@ -89,7 +96,7 @@ a.sidebar-link {
   position: absolute;
   top: 1.2rem;
   right: 1.25rem;
-  transition: all .2s ease-out;
+  // transition: all .2s ease-out;
 }
 
 .sidebar [aria-expanded="true"]:before,

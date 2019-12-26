@@ -33,6 +33,7 @@ $container-max-widths: (
 $transition-base: all .4s ease-in-out;
 
 // Theme colors
+$wott-blue: #2460C8;
 $blue:    #5b7dff;
 $red:     #f44455;
 $yellow:  #fcc100;
@@ -52,7 +53,7 @@ $gray-800: #343a40;
 $gray-900: #212529;
 $black: #000;
 
-$primary:       $cyan;
+$primary:       $blue;
 $secondary:     $pink;
 $success:       $green;
 $info:          $blue;
@@ -60,6 +61,7 @@ $warning:       $yellow;
 $danger:        $red;
 $light:         $gray-100;
 $dark:          #354052;
+
 
 $theme-colors: (
 	"primary": $primary,
@@ -69,7 +71,7 @@ $theme-colors: (
 	"warning": $warning,
 	"danger": $danger,
 	"light": $light,
-	"dark": $dark
+	"dark": $dark,
 );
 
 // Social colors
@@ -180,7 +182,7 @@ $table-accent-bg: $gray-100;
 // Sidebar general
 $sidebar-width: 250px;
 $sidebar-transition: margin-left .4s ease-in-out, left .4s ease-in-out;
-$sidebar-bg: $dark;
+$sidebar-bg: transparent;
 
 // Sidebar brand
 $sidebar-brand-padding-y: 1.15rem;
@@ -192,8 +194,8 @@ $sidebar-brand-font-size: 1.15rem;
 // Sidebar link
 $sidebar-link-padding-y: .75rem;
 $sidebar-link-padding-x: 1.5rem;
-$sidebar-link-color: $gray-400;
-$sidebar-link-bg: $dark;
+$sidebar-link-color: #646D7F;
+$sidebar-link-bg: transparent;
 $sidebar-link-hover-color: $gray-400;
 $sidebar-link-hover-bg: darken($dark, 4);
 $sidebar-link-active-color: $gray-400;
@@ -204,8 +206,8 @@ $sidebar-link-child-color: $gray-500;
 $sidebar-link-child-bg: darken($dark, 2);
 $sidebar-link-child-hover-color: $gray-200;
 $sidebar-link-child-hover-bg: darken($dark, 4);
-$sidebar-link-child-active-color: $gray-500;
-$sidebar-link-child-active-bg: darken($dark, 2);
+$sidebar-link-child-active-color: #2460C8;
+$sidebar-link-child-active-bg: $white;
 
 // Transitions
 $transition-appearance: background .4s ease-in-out, color .4s ease-in-out;
