@@ -341,7 +341,7 @@ class GithubCallbackView(LoginRequiredMixin, View):
 
 class SyncSubscriptionView(LoginRequiredMixin, RedirectView):
     """
-    The only purpose of this view is to (silently) sync a newly created subscription status with Stripe
+    The only purpose of this view is to (silently) sync a newly created subscription local status with Stripe
      after its 3D Secure protected payment check.
     """
     url = reverse_lazy('root')
