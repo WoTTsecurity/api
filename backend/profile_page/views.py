@@ -31,7 +31,7 @@ from .models import Profile
 
 class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
 
-    def dispatch(self, request, *args, **kwargs):
+    def custom_logic(self, request):
         self.user = request.user
         self.profile, _ = Profile.objects.get_or_create(user=self.user)
         if self.profile.paid_nodes_number > 0:
@@ -44,13 +44,14 @@ class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
                                   'phone': self.profile.phone,
                                   'payment_plan': self.profile.get_payment_plan_display(),
                                   'nodes_number': nodes_number}
-        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
+        self.custom_logic(request)
         form = ProfileForm(initial=self.initial_form_data)
         return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
 
     def post(self, request, *args, **kwargs):
+        self.custom_logic(request)
         form = ProfileForm(request.POST, initial=self.initial_form_data)
         if form.is_valid():
             self.user.email = form.cleaned_data['email']
@@ -91,7 +92,8 @@ class LogoutView(DjangoLogoutView):
             messages.add_message(request, messages.INFO, 'You have successfully logged out. Now you can log in again.')
             # Redirect to this page until the session has been cleared.
             return HttpResponseRedirect(next_page)
-        return super().dispatch(request, *args, **kwargs)
+        # Skip `LogoutView.dispatch` as its logic was duplicated here and call its parent's `dispatch`.
+        return View.dispatch(self, request, *args, **kwargs)
 
 
 class GenerateAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
