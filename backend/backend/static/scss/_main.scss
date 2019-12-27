@@ -3,6 +3,7 @@
   min-height: 100vh;
   min-width: 0;
   transition: $sidebar-transition;
+  border-left: 1px solid #CDDEF7;
 
   @include media-breakpoint-down(md) {
     overflow-y: hidden;

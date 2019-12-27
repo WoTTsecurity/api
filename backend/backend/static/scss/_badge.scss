@@ -1,12 +1,26 @@
 .badge {
   color: $white;
+  font-size: .8rem;
 }
 
 .wott-list-group-item-with-badge {
-  display:flex;
+  display: flex;
 }
 
 .wott-badge-position {
   padding: 5px 5px;
   margin: auto 0px auto 20px;
+}
+
+.wott-badge-pill {
+  padding: 5px;
+  padding-left: 4px;
+  font-size: .83rem;
+  width: 24px;
+  height: 23px;
+  border-radius: 50%;
+  background-color: #ef2f20;
+  margin-left: 11.5px;
+  margin-right: 11.5px;
+  font-weight: 700;
 }

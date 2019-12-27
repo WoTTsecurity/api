@@ -1,5 +1,27 @@
 .navbar {
   border-bottom: $navbar-border-bottom;
+  padding: 2.25rem;
+
+  h1 {
+    font-size: 2rem; 
+    font-weight:bolder;
+  }
+
+  .navbar-nav {
+    width: auto;
+    background-color: #E9EDF8;
+    border-top-left-radius: 7px;
+    border-bottom-left-radius: 7px;
+  }
+
+  .navbar-collapse {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .dropdown-toggle:after {
+    padding:2.5px;
+  }
 
   @include media-breakpoint-down(md) {
     width: 100vw;
@@ -8,6 +30,21 @@
 
 .navbar-brand {
   font-weight: $navbar-brand-font-weight;
+}
+
+#username-box {
+  margin-right: 55px;
+  color: #252B36 !important;
+  font-weight: 700;
+}
+
+.icon-box {
+  width: 25%;
+  height: 100%;
+  background-color: #DDE3F3;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .nav-icon,
@@ -36,6 +73,15 @@
 }
 
 .nav-item {
+  padding: 7px 25px;
+
+  .circle-red {
+    background: #f00;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+  }
+
   .indicator {
     background: $primary;
     box-shadow: $box-shadow;
