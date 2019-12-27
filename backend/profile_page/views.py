@@ -25,11 +25,11 @@ import djstripe.models
 import djstripe.settings
 
 from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm, ProfileModelForm
-from .mixins import LoginTrackMixin, StripeContextMixin
+from .mixins import LoginTrackMixin, StripeContextMixin, SyncSubscriptionsMixin
 from .models import Profile
 
 
-class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
+class ProfileAccountView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackMixin, View):
 
     def custom_logic(self, request):
         self.user = request.user
@@ -46,6 +46,7 @@ class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
                                   'nodes_number': nodes_number}
 
     def get(self, request, *args, **kwargs):
+        self.sync_subscriptions(request)
         self.custom_logic(request)
         form = ProfileForm(initial=self.initial_form_data)
         return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
@@ -295,11 +296,15 @@ class SlackIntegrationView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     extra_context = {'tab_slack_integration': 'active', 'header': 'Slack Integration'}
 
 
-class PaymentPlanView(LoginRequiredMixin, LoginTrackMixin, UpdateView):
+class PaymentPlanView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackMixin, UpdateView):
     form_class = ProfileModelForm
     template_name = 'profile_payment.html'
     extra_context = {'tab_payment_plan': 'active'}
     success_url = reverse_lazy('profile')
+
+    def get(self, request, *args, **kwargs):
+        self.sync_subscriptions(request)
+        return super().get(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         return self.request.user.profile

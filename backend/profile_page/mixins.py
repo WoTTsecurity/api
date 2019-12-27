@@ -28,3 +28,10 @@ class StripeContextMixin:
                 "(or use the dj-stripe webhooks)")
         context["STRIPE_PUBLIC_KEY"] = djstripe.settings.STRIPE_PUBLIC_KEY
         return context
+
+
+class SyncSubscriptionsMixin:
+    def sync_subscriptions(self, request):
+        subscriptions = djstripe.models.Subscription.objects.filter(customer__subscriber=request.user)
+        for subscription in subscriptions:
+            djstripe.models.Subscription.sync_from_stripe_data(subscription.api_retrieve())
