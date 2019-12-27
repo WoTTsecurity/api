@@ -4,6 +4,7 @@ from django.urls import reverse_lazy
 
 from .views import GenerateAPITokenView, RevokeAPITokenView, ProfileAccountView, ProfileAPITokenView
 from .views import WizardCompleteView, GithubCallbackView, GithubIntegrationView, SlackIntegrationView, PaymentPlanView
+from .views import SyncSubscriptionView
 from .forms import PasswordChangeForm
 
 urlpatterns = [
@@ -20,5 +21,6 @@ urlpatterns = [
     path('profile/github/', GithubIntegrationView.as_view(), name='github_integration'),
     path('profile/slack/', SlackIntegrationView.as_view(), name='slack_integration'),
     path('profile/payment/', PaymentPlanView.as_view(), name='payment_plan'),
-    path('github-callback/', GithubCallbackView.as_view(), name='github_callback')
+    path('github-callback/', GithubCallbackView.as_view(), name='github_callback'),
+    path('sync-subscription/<int:pk>/', SyncSubscriptionView.as_view(), name='sync_subscription')
 ]

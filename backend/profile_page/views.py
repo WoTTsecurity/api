@@ -8,11 +8,11 @@ from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from django.views.generic import View, TemplateView, UpdateView
+from django.views.generic import View, TemplateView, UpdateView, RedirectView
 
 from registration.signals import user_registered
 from registration.views import RegistrationView as BaseRegistrationView
@@ -204,7 +204,8 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
                     # Tell the client to handle the action.
                     return render(self.request, 'card_action.html',
                                   {'STRIPE_PUBLIC_KEY': djstripe.settings.STRIPE_PUBLIC_KEY, 'setup': setup,
-                                   'payment_intent_client_secret': intent.client_secret})
+                                   'payment_intent_client_secret': intent.client_secret,
+                                   'subscription_pk': subscription.pk})
                 else:
                     raise NotImplementedError(f'Subscription status `{subscription.status}` with the intent status '
                                               f'`{intent.status}` with the next action type '
@@ -336,3 +337,17 @@ class GithubCallbackView(LoginRequiredMixin, View):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         request.user.profile.fetch_oauth_token(request.GET.get('code'), profile.github_random_state)
         return render(request, 'github_callback.html')
+
+
+class SyncSubscriptionView(LoginRequiredMixin, RedirectView):
+    """
+    The only purpose of this view is to (silently) sync a newly created subscription status with Stripe
+     after its 3D Secure protected payment check.
+    """
+    url = reverse_lazy('root')
+
+    def get(self, request, *args, **kwargs):
+        subscription = get_object_or_404(djstripe.models.Subscription, pk=kwargs['pk'],
+                                         customer__subscriber=self.request.user)
+        djstripe.models.Subscription.sync_from_stripe_data(subscription.api_retrieve())
+        return super().get(request, *args, **kwargs)

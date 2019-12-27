@@ -10,18 +10,17 @@
 <script>
     let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
     stripe.confirmCard{% if setup %}Setup{% else %}Payment{% endif %}(
-        '{{ payment_intent_client_secret }}'
+    '{{ payment_intent_client_secret }}'
     ).then(function (result) {
             if (result.error) {
                 // Show error in payment form
                 let errorElement = document.getElementById('id_card_errors');
                 errorElement.textContent = result.error.message;
             } else {
-              window.location.replace("/");
+                location.href = "{% url 'sync_subscription' subscription_pk %}";
             }
         }
     )
-
 </script>
 </body>
 </html>
