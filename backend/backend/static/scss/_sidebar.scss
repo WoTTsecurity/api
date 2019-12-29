@@ -14,11 +14,11 @@
 .sidebar-sticky {
 
   .logo-image {
-    width: 12vw;
+    width: 75%;
   }
 
   .sidebar-nav {
-    padding: 2rem 0;
+    padding: 2.5rem 0;
     list-style: none;
 
     li {
@@ -29,10 +29,16 @@
         margin-bottom: 0;
         font-size: 0.95rem;
         font-weight: 600;
+        @include mQ($browser-width-md) {
+          font-size: 0.8rem;
+        }
       }
 
       img {
         margin-right: 15px;
+        @include mQ($browser-width-md) {
+          width: 8%;
+        }
       }
     }
   }
@@ -44,15 +50,16 @@
     left: 0;
     width: $sidebar-width;
 
-    #inst-btn {
+    #admin-inst-btn {
       width: 83%;
       padding: 13px;
       margin: auto;
-      font-size: 16px;
+      font-size: $font-size-lg;
       border-radius: $border-radius-xl; 
 
       img {
-        margin-left:15px;
+        margin-left: 15px;
+        margin-bottom: 3px;
       }
     }
   }
@@ -63,17 +70,21 @@
     color: $wott-nav;
     position: fixed;
     bottom: 0;
-    width: 19%;
+    width: $sidebar-width;
+    padding: 4.5vh 0;
     
-
     h2 {
       font-size:$font-size-xl;
-      padding: 40px 25px 10px;
+      padding: 0 25px;
       font-weight: 700;
+      margin-bottom: 0;
+      @include mQ($browser-width-md) {
+        font-size: 1rem;
+      }
     }
 
     .sidebar-bottom-box {
-      padding: $sidebar-link-padding-y $sidebar-link-padding-x;
+      padding: 2.5vh 1.5rem 1vh;
     }
   
     .sidebar-bottom-item {
@@ -81,11 +92,20 @@
       justify-content: space-between;
     }
 
+    #action-solved-block {
+      padding-top: .5vh;
+    }
+
     p {
-     font-size: $font-size-lg;
-     color: $sidebar-link-color;
-     display: inline;
-     font-weight: 600;
+      font-size: $font-size-lg;
+      color: $sidebar-link-color;
+      display: inline;
+      font-weight: 600;
+      margin-bottom: .9vh;
+      padding-top: 1.5vh;
+      @include mQ($browser-width-md) {
+        font-size: 0.8rem;
+      }
     }
 
     #trust-score {
@@ -104,7 +124,7 @@
 .sidebar-link svg {
   margin-right: .75rem;
   color: $white;
-  font-weight:bolder;
+  font-weight: bolder;
 }
 
 // Parents
@@ -113,7 +133,7 @@ a.sidebar-link {
   display: flex;
   align-items: center;
   padding: $sidebar-link-padding-y $sidebar-link-padding-x;
-  padding-right:0px;
+  padding-right: 0px;
   color: $sidebar-link-color;
   background: $sidebar-link-bg;
   transition: $transition-appearance-fast;
@@ -157,6 +177,41 @@ a.sidebar-link {
   }
 }
 
+//Graphics
+
+#trust-graph-100 {
+  background-color: #A8D3FF;
+
+}
+
+#trust-graph-100, #action-solved-graph {
+  width: 100%;
+  height: 10px;
+  position: relative;
+  border-radius: 30px;
+}
+
+#trust-graph-var, #action-solved-var {
+  height: 10px;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+}
+
+#trust-graph-var {
+  background-color: #0E85FF;
+}
+
+#action-solved-graph {
+  background-color: #A6F3FF;
+}
+
+#action-solved-var {
+  background-color: #33D3EC;
+}
 
 // Chevron
 .sidebar [data-toggle="collapse"] {
@@ -190,8 +245,6 @@ a.sidebar-link {
   color: $sidebar-brand-color;
   display: block;
   text-align: center;
-  // font-weight: 500;
-  // font-size: 1.15rem;
 
   &:hover {
     text-decoration: none;

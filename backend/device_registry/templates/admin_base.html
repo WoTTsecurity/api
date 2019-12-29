@@ -18,7 +18,7 @@
         <a class="sidebar-brand" href="{% url 'root' %}">
           <img class="logo-image" src="{% static '/media/Logo.png' %}" alt="WoTT">
         </a>
-        <button type="button" class="btn btn-wott-primary btn-lg btn-block" id="inst-btn">
+        <button type="button" class="btn btn-wott-primary btn-lg btn-block" id="admin-inst-btn">
           Add A Node
           <img src="{% static '/media/Plus.png' %}" alt="Plus">
         </button>
@@ -27,32 +27,57 @@
           <ul class="sidebar-nav">
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
               
+              <!-- <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">
+                <img id="dash-image" src="{% static '/media/Dashboard.png' %}" alt="Dashboard">
+                <h4>Dashboard</h4>
+              </a> -->
+
               <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">
+                {% if url_name|is_menu_highlight_id:'root' %}
+                <img src="{% static '/media/Dashboard_selected.png' %}" alt="Dashboard">
+                {% else %}
                 <img src="{% static '/media/Dashboard.png' %}" alt="Dashboard">
+                {% endif %}
                 <h4>Dashboard</h4>
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'cve' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-cve" href="#">
+                {% if url_name|is_menu_highlight_id:'cve' %}
+                <img src="{% static '/media/CVE_selected.png' %}" alt="CVE">
+                {% else %}
                 <img src="{% static '/media/CVE.png' %}" alt="CVE">
+                {% endif %}
                 <h4>CVE</h4>
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'nodes' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-nodes" href="#">
-                <img src="{% static '/media/Nodes.png' %}" alt="Nodes">
+                {% if url_name|is_menu_highlight_id:'nodes' %}
+                <img src="{% static '/media/Nodes_selected.png' %}" alt="CVE">
+                {% else %}
+                <img id="nodes-image" src="{% static '/media/Nodes.png' %}" alt="Nodes">
+                {% endif %}
                 <h4>Nodes</h4>
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">
-                <img src="{% static '/media/Add_Node.png' %}" alt="Claim Node">
+                {% if url_name|is_menu_highlight_id:'claim-device' %}
+                <img src="{% static '/media/Add_Node_selected.png' %}" alt="CVE">
+                {% else %}
+                <img src="{% static '/media/Add_Node.png' %}" alt="CVE">
+                {% endif %}
                 <h4>Claim Node</h4>
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
-                <img src="{% static '/media/verified.png' %}" alt="Recommended Actions">
+                {% if url_name|is_menu_highlight_id:'actions' %}
+                <img src="{% static '/media/verified_selected.png' %}" alt="CVE">
+                {% else %}
+                <img id="actions-image" src="{% static '/media/verified.png' %}" alt="Recommended Actions">
+                {% endif %}    
                 <h4>Recommended Actions</h4>
                 <!-- {% with user.profile.actions_count as actions_count %}
                 {% if actions_count %}
@@ -64,7 +89,11 @@
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">
+                {% if url_name|is_menu_highlight_id:'global_policies' %}
+                <img src="{% static '/media/Policies_selected.png' %}" alt="CVE">
+                {% else %}
                 <img src="{% static '/media/Policies.png' %}" alt="Global Policies">
+                {% endif %}
                 <h4>Global Policies</h4>
               </a>
             </li>
@@ -78,17 +107,23 @@
         <div class="sidebar-bottom-box">
           <div class="sidebar-bottom-item">
             <p>Current Trust Score</p>
+            <!-- the 75% on the p tag below should be replaced by data -->
             <p id="trust-score">75%</p>
           </div>
-          <span id="current-trust-graph"></span>
-          <div class="sidebar-bottom-item">
-            <p>Action Solved</p>
+          <div id="trust-graph-100">
+            <span id="trust-graph-var"></span>
+          </div>
+          <div id="action-solved-block" class="sidebar-bottom-item">
+            <p>Actions Solved</p>
+            <!-- the 25/90 on the p tag below should be replaced by data -->
             <p id="action-solved">29/50</p>
           </div>
-          <span id="action-solved-graph"></span>
+          <div id="action-solved-graph">
+            <span id="action-solved-var"></span>
+          </div>
         </div>
       </div>
-      
+
     </nav>
 
     <div class="main">
@@ -138,7 +173,7 @@
             </div>
           </div>
         </div>
-      </footer> -->
+      </footer>  -->
     </div>
   </div>
 {% endblock %}
@@ -146,6 +181,27 @@
 {% block scripts %}
   {{ block.super }}
   <script src="{% static '/js/csrf.js' %}"></script>
+  <script>
+
+    // Side graphics
+    let trustScore = document.getElementById('trust-score')
+    let trustScoreText = trustScore.textContent;
+    let actionSolved = document.getElementById('action-solved');
+    let actionSolvedText = actionSolved.textContent;
+    let solved = parseInt(actionSolvedText.split('/')[0]);
+    let actions = parseInt(actionSolvedText.split('/')[1]);
+    
+    $('action-solved').on("load", sendActionInfo());
+    document.getElementById('action-solved-var').style.width = sendActionInfo()
+    $('trust-score').on("load", 
+      document.getElementById('trust-graph-var').style.width = trustScoreText
+    )
+
+    function sendActionInfo() {
+      return parseInt(solved / actions * 100) + '%';
+    }
+
+  </script>
   <script type="text/javascript">
       $(() => {
           feather.replace();
@@ -171,97 +227,6 @@
           "$email": "{{ user.email }}",
           "$phone": "{{ user.profile.phone }}"
       });
-    {% endif %}
-
-    
-
-    $('#inst-btn').on('click', show_install_msg );
-
-    function copy_bash(e){
-        let text = e.currentTarget.parentElement.children[1].innerText.trim();
-        text = text.replace(/(\r\n|\n)/gm, ' && ');
-        copyToClipboard(text).then(function() {
-          /* clipboard successfully set */
-          console.log("COPIED");
-        }, function() {
-            alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
-        });
-
-      }
-
-      function bash_block(text){
-          let s = $('#bash_block').html();
-          let copy_text = text.replace(/^(\$ )/gm, '');
-          return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
-      }
-
-      function show_install_msg(){
-        $.ajax({
-            url: '/ajax-pairing-keys/add_dev/',
-            type: "POST",
-            data: JSON.stringify({}),
-            contentType: 'application/json',
-        }).done(function (e) {
-            console.log('success');
-            let title = "To add a node, simply SSH in and run the following commands:";
-            let msg = bash_block(
-                     `$ sudo apt-get install -y curl\n`
-                   + `$ sudo mkdir -p /opt/wott\n`
-                   + `$ echo -e "[DEFAULT]\\\\nenroll_token = ${e.key}" | sudo tee -a /opt/wott/config.ini\n`
-                   + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
-                   + `$ sudo apt install -y wott-agent\n`);
-            show_dialog(title, msg);
-            document.querySelectorAll('pre code').forEach((block) => {
-              hljs.highlightBlock(block);
-            });
-            $("button[btn_id='bash']").on("click", copy_bash);
-        }).fail(function (e) {
-            console.log('error');
-            console.log(e.status, e.responseText);
-            show_dialog('Error', e.status, e.responseText);
-        })
-      }
-
-      /***
-       *  setup dialog parameters and toggle on.
-       *  @param title - dialog title
-       *  @param message - dialog message
-       *  @param errors - the errors string to display, if is not null.
-       */
-      function show_dialog(title, message, errors=null, h2_title='Add new node' )
-      {
-          $('#modal-title-h2')[0].innerText = h2_title;
-          $('#modal-title')[0].innerText = title;
-          $('#modal-msg')[0].innerHTML = message;
-          if(errors == null)
-            $('#modal-alert')[0].style.display = 'none';
-          else
-          {
-            $('#modal-alert')[0].style.display = 'block';
-            $('#modal-alert')[0].innerText = errors;
-          }
-          $('#wott-instruction-modal').modal('toggle');
-      }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
+    {% endif %} 
   </script>
 {% endblock %}

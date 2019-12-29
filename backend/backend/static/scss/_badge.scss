@@ -20,7 +20,10 @@
   height: 23px;
   border-radius: 50%;
   background-color: #ef2f20;
-  margin-left: 11.5px;
-  margin-right: 11.5px;
+  margin-left: 15px;
+  margin-right: 15px;
   font-weight: 700;
+  @include mQ($browser-width-md) {
+    font-size: 0.76rem;
+  }
 }
