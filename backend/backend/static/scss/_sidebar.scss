@@ -1,13 +1,11 @@
 .sidebar {
   min-width: $sidebar-width;
   max-width: $sidebar-width;
-  // transition: $sidebar-transition;
   background-image: linear-gradient(to bottom, white , #DCE6FF);
 }
 
 .sidebar-content {
   background-image: linear-gradient(to bottom, white , #DCE6FF);
-  // transition: $sidebar-transition;
   border-right: .5px solid #CDDEF7;
 }
 
@@ -118,7 +116,6 @@
   }
 }
 
-
 // Icons
 .sidebar-link .feather,
 .sidebar-link svg {
@@ -228,7 +225,6 @@ a.sidebar-link {
   position: absolute;
   top: 1.2rem;
   right: 1.25rem;
-  // transition: all .2s ease-out;
 }
 
 .sidebar [aria-expanded="true"]:before,
@@ -264,94 +260,3 @@ a.sidebar-link {
     margin-right: 0.375rem;
   }
 }
-
-// Toggle states
-// .sidebar-toggle {
-//   cursor: pointer;
-//   width: 26px;
-//   height: 26px;
-// }
-
-// .sidebar {
-//   &.toggled {
-//     margin-left: -$sidebar-width;
-
-//     .sidebar-content {
-//       left: -$sidebar-width;
-//     }
-//   }
-
-  // Workaround for IE bug, more info:
-  // https://stackoverflow.com/a/25850649
-  // @media (min-width: 1px) and (max-width: #{map-get($grid-breakpoints, 'lg') - .02px}) {
-
-  //   // Sidebar default state (on mobile)
-  //   margin-left: -$sidebar-width;
-
-  //   .sidebar-content {
-  //     left: -$sidebar-width;
-  //   }
-
-  //   // Sidebar toggled state (on mobile)
-  //   &.toggled {
-  //     margin-left: 0;
-
-  //     .sidebar-content {
-  //       left: 0;
-  //     }
-  //   }
-
-  //   // Sidebar collapsed state (on mobile)
-  //   // layouts-sidebar-collapsed.html
-  //   &-collapsed {
-  //     margin-left: 0;
-
-  //     .sidebar-content {
-  //       left: 0;
-  //     }
-
-  //     &.toggled {
-  //       margin-left: -$sidebar-width;
-
-  //       .sidebar-content {
-  //         left: -$sidebar-width;
-  //       }
-  //     }
-  //   }
-  // }
-// }
-
-// Sidebar header
-// .sidebar-header {
-//   background: transparent;
-//   color: $gray-500;
-//   padding: 0.375rem $sidebar-link-padding-x;
-//   font-size: $font-size-lg;
-// }
-
-// Progress
-// .sidebar-bottom {
-  // transition: $sidebar-transition;
-  // padding: $spacer;
-  // width: inherit;
-  // font-size: 0.8rem;
-  // bottom: 0;
-  // left: 0;
-  // position: fixed;
-  // // background: darken($sidebar-bg, 2);
-  // min-width: $sidebar-width;
-  // max-width: $sidebar-width;
-  // color: $gray-200;
-  // margin-left: 0;
-// }
-
-// .sidebar.toggled .sidebar-bottom {
-//   margin-left: -$sidebar-width;
-// }
-
-// // Badge
-// .sidebar-badge {
-//   position: absolute;
-//   right: 15px;
-//   top: 14px;
-// }
