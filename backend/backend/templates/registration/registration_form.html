@@ -38,10 +38,10 @@
                     <div class="free-hidden form-group d-none">
                       <label for="id_card_element">Credit or debit card</label>
                       <div id="id_card_element"></div>
-                      <div id="id_card_errors" role="alert"></div>
+                      <div id="id_card_errors" role="alert" style="color:red;"></div>
                     </div>
                     {% buttons %}
-                      <button type="submit" class="btn btn-lg btn-primary">{% trans 'Submit' %}</button>
+                      <button type="submit" class="btn btn-lg btn-primary">Submit</button>
                     {% endbuttons %}
                   </form>
                 </div>
@@ -131,7 +131,9 @@
               return;
           }
           event.preventDefault();
-          stripe.createPaymentMethod('card', card).then(function (result) {
+          stripe.createPaymentMethod({
+              type: 'card', card: card, billing_details: {email: $('#id_email').val()}
+          }).then(function (result) {
               if (result.error) {
                   // Inform the user if there was an error.
                   errorElement.textContent = result.error.message;

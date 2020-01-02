@@ -7,30 +7,126 @@
       <h5 class="card-title mb-0">Payment Plan</h5>
     </div>
     <div class="card-body">
-      <form method="POST" action="">
+      <form method="POST" action="" id="id_payments_form">
+        {% bootstrap_form_errors form type='non_fields' %}
         {% csrf_token %}
-        {% bootstrap_form form %}
         <input type="hidden" value=1 id="remembered-nodes-number">
+        {% bootstrap_field form.payment_plan %}
+        {% bootstrap_field form.subscription_status %}
+        {% bootstrap_field form.current_period_ends %}
+        {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
+        {% bootstrap_field form.payment_method_id %}
+        <div class="card-form-group form-group d-none">
+          <label for="id_card_element">Credit or debit card</label>
+          <div id="id_card_element"></div>
+          <div id="id_card_errors" role="alert" style="color:red;"></div>
+        </div>
         {% buttons %}
-          <button type="submit" class="btn btn-primary">Save changes</button>
+          <button type="submit" class="btn btn-lg btn-primary">Submit</button>
         {% endbuttons %}
       </form>
     </div>
   </div>
 {% endblock %}
 
+{% block js %}
+  {{ block.super }}
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
 {% block scripts %}
   {{ block.super }}
   <script>
-      $('#id_payment_plan').change(function () {
-          if ($('#id_payment_plan').val() === '2') { // Standard tier.
-              $('#id_nodes_number').val($('#remembered-nodes-number').val());
-              $('#id_nodes_number').prop("disabled", false);
-          } else {
-              $('#remembered-nodes-number').val($('#id_nodes_number').val());
-              $('#id_nodes_number').val('');
-              $('#id_nodes_number').prop("disabled", true);
+      let payment_plan_id = '{{ payment_plan }}';  // Remember initial payment plan id as a string.
+      let form = document.getElementById('id_payments_form');
+      let errorElement = document.getElementById('id_card_errors');
+      let handle_stripe_submission = false;
+
+      const style = {
+          base: {
+              color: '#32325d',
+              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+              fontSmoothing: 'antialiased',
+              fontSize: '16px',
+              '::placeholder': {
+                  color: '#aab7c4'
+              }
+          },
+          invalid: {
+              color: '#fa755a',
+              iconColor: '#fa755a'
           }
+      };
+
+      if (payment_plan_id !== '1') {  // Failed django form validation case handling.
+          $('.free-hidden').removeClass('d-none');
+          //handle_stripe_submission = true;
+      }
+
+      // Create a Stripe client.
+      let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+      // Create an instance of Elements.
+      let elements = stripe.elements();
+      // Create an instance of the card Element.
+      let card = elements.create('card', {style: style});
+
+      // Add an instance of the card Element into the `id_card_element` <div>.
+      card.mount('#id_card_element');
+
+      // Handle real-time validation errors from the card Element.
+      card.on('change', (event) => {
+          if (event.error) {
+              errorElement.textContent = event.error.message;
+          } else {
+              errorElement.textContent = '';
+          }
+      });
+
+      $('#id_payment_plan').change(function () {
+          let new_payment_plan_id = $(this).val();
+          if (new_payment_plan_id === '2') {
+              $('.free-hidden').removeClass('d-none');
+              $('#id_nodes_number').val($('#remembered-nodes-number').val());
+              handle_stripe_submission = true;
+          } else if (new_payment_plan_id === '1') {
+              $('.free-hidden').addClass('d-none');
+              $('.card-form-group').addClass('d-none');
+              $('#remembered-nodes-number').val($('#id_nodes_number').val());
+              $('#id_nodes_number').val(1);
+              handle_stripe_submission = false;
+          }
+
+          if (new_payment_plan_id !== payment_plan_id) {
+              if (payment_plan_id === '1' && new_payment_plan_id === '2') {  // Enabled standard plan.
+                  /////////
+                  $('.card-form-group').removeClass('d-none');
+                  /////////
+              }
+              //} else if (payment_plan_id === '2' && new_payment_plan_id === '1') {  // Enabled free plan.
+              //    $('.free-hidden').removeClass('d-none');
+              //}
+          }
+
+          // Handle form submission.
+          $(form).on('submit', (event) => {
+              if (!handle_stripe_submission) {
+                  return;
+              }
+              event.preventDefault();
+              stripe.createPaymentMethod({type: 'card', card: card}).then(function (result) {
+                  if (result.error) {
+                      // Inform the user if there was an error.
+                      errorElement.textContent = result.error.message;
+                  } else {
+                      // Save Stripe payment id to the hidden field.
+                      var hiddenInput = form.elements["payment_method_id"];
+                      hiddenInput.setAttribute('value', result.paymentMethod.id);
+                      // Submit the form.
+                      form.submit();
+                  }
+              });
+          });
+
       });
   </script>
 {% endblock %}

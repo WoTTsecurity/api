@@ -1,6 +1,8 @@
 import djstripe.models
 import djstripe.settings
 
+from .models import Profile
+
 
 class LoginTrackMixin:
     """
@@ -30,8 +32,20 @@ class StripeContextMixin:
         return context
 
 
-class SyncSubscriptionsMixin:
-    def sync_subscriptions(self, request):
-        subscriptions = djstripe.models.Subscription.objects.filter(customer__subscriber=request.user)
+class SyncUserSubscriptionsMixin:
+    def sync_user_subscriptions(self, user):
+        # Sync all locally existing subscriptions' statuses with Stripe.
+        # TODO: Delete all locally existing subscriptions that not exist in Stripe.
+        # TODO: Pull from Stripe missing (locally) subscriptions info.
+        subscriptions = djstripe.models.Subscription.objects.filter(customer__subscriber=user)
         for subscription in subscriptions:
             djstripe.models.Subscription.sync_from_stripe_data(subscription.api_retrieve())
+
+        # Switch to the free payment plan if a user has no active subscriptions.
+        if not user.profile.has_active_subscription and user.profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
+            user.profile.payment_plan = Profile.PAYMENT_PLAN_FREE
+            user.profile.save(update_fields=['payment_plan'])
+        # # Switch to the standard payment plan if a user has active subscriptions.
+        # elif user.profile.has_active_subscription and user.profile.payment_plan == Profile.PAYMENT_PLAN_FREE:
+        #     user.profile.payment_plan = Profile.PAYMENT_PLAN_STANDARD
+        #     user.profile.save(update_fields=['payment_plan'])

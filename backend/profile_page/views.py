@@ -24,12 +24,12 @@ import stripe
 import djstripe.models
 import djstripe.settings
 
-from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm, ProfileModelForm
-from .mixins import LoginTrackMixin, StripeContextMixin, SyncSubscriptionsMixin
+from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm, ProfilePaymentPlanForm
+from .mixins import LoginTrackMixin, StripeContextMixin, SyncUserSubscriptionsMixin
 from .models import Profile
 
 
-class ProfileAccountView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackMixin, View):
+class ProfileAccountView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrackMixin, View):
 
     def custom_logic(self, request):
         self.user = request.user
@@ -43,10 +43,12 @@ class ProfileAccountView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackM
                                   'company': self.profile.company_name,
                                   'phone': self.profile.phone,
                                   'payment_plan': self.profile.get_payment_plan_display(),
-                                  'nodes_number': nodes_number}
+                                  'nodes_number': nodes_number,
+                                  'current_period_ends': self.profile.current_period_end,
+                                  'subscription_status': self.profile.subscription_status_text}
 
     def get(self, request, *args, **kwargs):
-        self.sync_subscriptions(request)
+        self.sync_user_subscriptions(request.user)
         self.custom_logic(request)
         form = ProfileForm(initial=self.initial_form_data)
         return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
@@ -62,6 +64,7 @@ class ProfileAccountView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackM
             self.profile.phone = form.cleaned_data['phone']
             self.user.save(update_fields=['email', 'first_name', 'last_name'])
             self.profile.save(update_fields=['company_name', 'phone'])
+            messages.add_message(self.request, messages.INFO, 'Profile info successfully updated.')
             return HttpResponseRedirect(reverse('profile'))
         return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
 
@@ -176,6 +179,7 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
                     'delinquent': stripe_customer.get('delinquent', False)
                 }
             )
+            djstripe.models.Customer.sync_from_stripe_data(stripe_customer)
 
             # Using the Stripe API, create a subscription for this customer,
             # using the customer's default payment source
@@ -296,45 +300,154 @@ class SlackIntegrationView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     extra_context = {'tab_slack_integration': 'active', 'header': 'Slack Integration'}
 
 
-class PaymentPlanView(LoginRequiredMixin, SyncSubscriptionsMixin, LoginTrackMixin, UpdateView):
-    form_class = ProfileModelForm
+class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrackMixin, UpdateView):
+    form_class = ProfilePaymentPlanForm
     template_name = 'profile_payment.html'
     extra_context = {'tab_payment_plan': 'active'}
-    success_url = reverse_lazy('profile')
+    success_url = reverse_lazy('payment_plan')
 
     def get(self, request, *args, **kwargs):
-        self.sync_subscriptions(request)
+        self.sync_user_subscriptions(request.user)
         return super().get(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         return self.request.user.profile
 
     def form_valid(self, form):
-        # TODO: put in one transaction.
-        self.object = form.save()
-        #######
+        # TODO: put all in one transaction.
+        self.object = form.save()  # Save the profile instance.
         payment_plan = form.cleaned_data['payment_plan']
-        nodes_number = form.cleaned_data.get('nodes_number')
+        nodes_number = form.cleaned_data['nodes_number']
+        # Cancel an existing subscription (if not cancelled yet).
         if payment_plan == Profile.PAYMENT_PLAN_FREE:
-            # TODO: disable existing subscription or do nothing.
-            pass
-        elif payment_plan == Profile.PAYMENT_PLAN_STANDARD and nodes_number is not None:
-            customer, created = djstripe.models.Customer.get_or_create(self.request.user)
-            if not created:
-                subscription = customer.subscription
-                # TODO: create subscription if it's missing.
-                subscription.update(quantity=nodes_number)
-                # Automatically immediately charge a customer's card for increased number of items in his subscription,
-                # or put (for paying future invoices from it as a 1st source) the extra money to his Stripe balance
-                # (in case of reduced number of items).
-                customer.send_invoice()
-        #######
+            if self.object.has_active_subscription:
+                subscription = self.object.djstripe_customer.subscription
+                if not subscription.is_status_temporarily_current():  # Not cancelled yet.
+                    # Cancel subscription automatic renewal.
+                    stripe_subscription = subscription.api_retrieve()
+                    stripe_subscription.cancel_at_period_end = True
+                    stripe_subscription.save()
+                    djstripe.models.Subscription.sync_from_stripe_data(stripe_subscription)
+                    messages.add_message(self.request, messages.INFO,
+                                         'Subscription cancelled successfully. Note: you can use your previous plan '
+                                         'features until the end of current paid billing period.')
+        # Create a new or update existing subscription.
+        elif payment_plan == Profile.PAYMENT_PLAN_STANDARD:
+            if self.object.has_active_subscription:
+                subscription = self.object.djstripe_customer.subscription
+                # Not cancelled and has nodes number changed.
+                if not subscription.is_status_temporarily_current() and subscription.quantity != nodes_number:
+                    # Update an existing subscription.
+                    subscription.update(quantity=nodes_number, prorate=True)
+                    # Automatically immediately charge a customer's card for increased number of items
+                    # in his subscription, or put (for paying future invoices from it as a 1st source) the extra
+                    # money to his Stripe balance (in case of reduced number of items).
+                    subscription.customer.send_invoice()
+                    messages.add_message(self.request, messages.INFO, 'Paid nodes number successfully changed.')
+                # Immediately cancel the subscription before creating the new one.
+                # Also put all unused money for this subscription to the customer's Stripe balance.
+                elif subscription.is_status_temporarily_current():
+                    djstripe.models.Subscription.sync_from_stripe_data(subscription._api_delete(prorate=True))
+                    subscription.customer.send_invoice()
+
+            if not self.object.has_active_subscription:
+                payment_method_id = form.cleaned_data['payment_method_id']
+
+                # Create a Stripe customer (if needed).
+                if not djstripe.models.Customer.objects.filter(subscriber=self.object.user).exists():
+                    # Collect customer's info for Stripe.
+                    name = ('%s %s' % (self.object.user.first_name, self.object.user.last_name)).strip()
+                    company = self.object.company_name.strip()
+                    if company:
+                        name += ' (%s)' % company
+
+                    action = 'create:{}'.format(self.object.user.pk)
+                    idempotency_key = djstripe.settings.get_idempotency_key(
+                        'customer', action, djstripe.settings.STRIPE_LIVE_MODE)
+                    metadata = {}
+                    subscriber_key = djstripe.settings.SUBSCRIBER_CUSTOMER_KEY
+                    if subscriber_key not in ('', None):
+                        metadata[subscriber_key] = self.object.user.pk
+                    stripe_customer = djstripe.models.Customer._api_create(
+                        idempotency_key=idempotency_key,
+                        metadata=metadata,
+                        email=self.object.user.email,
+                        phone=form.cleaned_data.get('phone'),
+                        name=name if name else None,
+                        payment_method=payment_method_id,
+                        invoice_settings={'default_payment_method': payment_method_id}
+                    )
+                    # Create djstripe model's instance for the customer.
+                    customer, created = djstripe.models.Customer.objects.get_or_create(
+                        id=stripe_customer['id'],
+                        defaults={
+                            'subscriber': self.object.user,
+                            'livemode': stripe_customer['livemode'],
+                            'balance': stripe_customer.get('balance', 0),
+                            'delinquent': stripe_customer.get('delinquent', False)
+                        }
+                    )
+                    djstripe.models.Customer.sync_from_stripe_data(stripe_customer)
+                else:
+                    customer = self.object.djstripe_customer
+                    customer.add_payment_method(payment_method_id)
+                # Using the Stripe API, create a subscription for this customer,
+                # using the customer's default payment source
+                stripe_subscription = stripe.Subscription.create(customer=customer.id,
+                                                                 billing='charge_automatically',
+                                                                 # billing='send_invoice',  # TEMP!
+                                                                 # days_until_due=2,  # TEMP!
+                                                                 plan=settings.WOTT_STANDARD_PLAN_ID,
+                                                                 quantity=nodes_number,
+                                                                 trial_from_plan=True,
+                                                                 expand=['latest_invoice.payment_intent'],
+                                                                 api_key=djstripe.settings.STRIPE_SECRET_KEY)
+                # Sync the Stripe API return data to the database,
+                # this way we don't need to wait for a webhook-triggered sync
+                subscription = djstripe.models.Subscription.sync_from_stripe_data(stripe_subscription)
+                # Load automatically created (with the subscription) invoice info from Stripe.
+                customer._sync_invoices(subscription=subscription.id)
+
+                if subscription.status == 'active':
+                    pass
+                elif subscription.status in ('trialing', 'incomplete'):
+                    if subscription.status == 'trialing':
+                        intent = subscription.pending_setup_intent
+                        setup = True
+                    else:
+                        intent = subscription.invoices.order_by('-pk')[0].payment_intent
+                        setup = False
+                    if intent.status == 'requires_action' and intent.next_action['type'] == 'use_stripe_sdk':
+                        # Tell the client to handle the action.
+                        return render(self.request, 'card_action.html',
+                                      {'STRIPE_PUBLIC_KEY': djstripe.settings.STRIPE_PUBLIC_KEY, 'setup': setup,
+                                       'payment_intent_client_secret': intent.client_secret,
+                                       'subscription_pk': subscription.pk})
+                    else:
+                        raise NotImplementedError(
+                            f'Subscription status `{subscription.status}` with the intent status '
+                            f'`{intent.status}` with the next action type '
+                            f'`{intent.next_action["type"]}` are not supported yet.')
+                else:
+                    raise NotImplementedError(f'Subscription status `{subscription.status}` is not supported yet.')
+        else:
+            raise NotImplementedError
         return HttpResponseRedirect(self.get_success_url())
 
     def get_initial(self):
         initial = super().get_initial()
-        initial['nodes_number'] = self.request.user.profile.paid_nodes_number
+        nodes_number = self.request.user.profile.paid_nodes_number
+        if nodes_number:
+            initial['nodes_number'] = nodes_number
+        initial['subscription_status'] = self.request.user.profile.subscription_status_text
+        initial['current_period_ends'] = self.request.user.profile.current_period_end
         return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['payment_plan'] = self.object.payment_plan
+        context['STRIPE_PUBLIC_KEY'] = djstripe.settings.STRIPE_PUBLIC_KEY
+        return context
 
 
 class GithubCallbackView(LoginRequiredMixin, View):

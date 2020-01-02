@@ -9,8 +9,13 @@ from phonenumber_field.formfields import PhoneNumberField
 from .models import Profile
 
 
-class ProfileModelForm(forms.ModelForm):
-    nodes_number = forms.IntegerField(min_value=1, required=False, label='Nodes number (besides 1 given for free)')
+class ProfilePaymentPlanForm(forms.ModelForm):
+    subscription_status = forms.CharField(required=False, label='Subscription status', disabled=True,
+                                          widget=forms.TextInput(attrs={'placeholder': ''}))
+    current_period_ends = forms.DateTimeField(required=False, label='Billing period ends', disabled=True,
+                                              widget=forms.DateTimeInput(attrs={'placeholder': ''}))
+    nodes_number = forms.IntegerField(min_value=1, initial=1, label='Nodes number (besides 1 given for free)')
+    payment_method_id = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,7 +38,11 @@ class PasswordChangeForm(DjangoPasswordChangeForm):
 class ProfileForm(forms.Form):
     username = forms.CharField(disabled=True)
     payment_plan = forms.CharField(disabled=True)
-    nodes_number = forms.IntegerField(required=False, label='Paid nodes number (besides 1 given for free)',
+    subscription_status = forms.CharField(required=False, label='Subscription status', disabled=True,
+                                          widget=forms.TextInput(attrs={'placeholder': ''}))
+    current_period_ends = forms.DateTimeField(required=False, label='Billing period ends', disabled=True,
+                                              widget=forms.DateTimeInput(attrs={'placeholder': ''}))
+    nodes_number = forms.IntegerField(required=False, label='Paid nodes (besides 1 given for free)',
                                       disabled=True, widget=forms.NumberInput(attrs={'placeholder': ''}))
     email = forms.EmailField()
     first_name = forms.CharField(max_length=30, required=False)
