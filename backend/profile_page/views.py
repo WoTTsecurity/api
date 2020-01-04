@@ -445,7 +445,6 @@ class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrack
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['payment_plan'] = self.object.payment_plan
         context['STRIPE_PUBLIC_KEY'] = djstripe.settings.STRIPE_PUBLIC_KEY
         return context
 

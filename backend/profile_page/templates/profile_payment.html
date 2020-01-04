@@ -10,11 +10,10 @@
       <form method="POST" action="" id="id_payments_form">
         {% bootstrap_form_errors form type='non_fields' %}
         {% csrf_token %}
-        <input type="hidden" value=1 id="remembered-nodes-number">
         {% bootstrap_field form.payment_plan %}
         {% bootstrap_field form.subscription_status %}
         {% bootstrap_field form.current_period_ends %}
-        {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
+        {% bootstrap_field form.nodes_number %}
         {% bootstrap_field form.payment_method_id %}
         <div class="card-form-group form-group d-none">
           <label for="id_card_element">Credit or debit card</label>
@@ -37,7 +36,8 @@
 {% block scripts %}
   {{ block.super }}
   <script>
-      let payment_plan_id = '{{ payment_plan }}';  // Remember initial payment plan id as a string.
+      let payment_plan_id = $('#id_payment_plan').val();  // Remember initial payment_plan field value.
+      let nodes_number = $('#id_nodes_number').val();  // Remember initial nodes_number field value.
       let form = document.getElementById('id_payments_form');
       let errorElement = document.getElementById('id_card_errors');
       let handle_stripe_submission = false;
@@ -58,9 +58,8 @@
           }
       };
 
-      if (payment_plan_id !== '1') {  // Failed django form validation case handling.
-          $('.free-hidden').removeClass('d-none');
-          //handle_stripe_submission = true;
+      if (payment_plan_id !== '1') {
+          $('#id_nodes_number').removeAttr('disabled');
       }
 
       // Create a Stripe client.
@@ -85,26 +84,19 @@
       $('#id_payment_plan').change(function () {
           let new_payment_plan_id = $(this).val();
           if (new_payment_plan_id === '2') {
-              $('.free-hidden').removeClass('d-none');
-              $('#id_nodes_number').val($('#remembered-nodes-number').val());
+              $('#id_nodes_number').removeAttr('disabled');
               handle_stripe_submission = true;
           } else if (new_payment_plan_id === '1') {
-              $('.free-hidden').addClass('d-none');
               $('.card-form-group').addClass('d-none');
-              $('#remembered-nodes-number').val($('#id_nodes_number').val());
-              $('#id_nodes_number').val(1);
+              $('#id_nodes_number').val(nodes_number);
+              $('#id_nodes_number').attr('disabled', true);
               handle_stripe_submission = false;
           }
 
           if (new_payment_plan_id !== payment_plan_id) {
               if (payment_plan_id === '1' && new_payment_plan_id === '2') {  // Enabled standard plan.
-                  /////////
                   $('.card-form-group').removeClass('d-none');
-                  /////////
               }
-              //} else if (payment_plan_id === '2' && new_payment_plan_id === '1') {  // Enabled free plan.
-              //    $('.free-hidden').removeClass('d-none');
-              //}
           }
 
           // Handle form submission.
@@ -126,7 +118,6 @@
                   }
               });
           });
-
       });
   </script>
 {% endblock %}
