@@ -88,18 +88,15 @@
               $('#id_nodes_number').removeAttr('disabled');
               if ($('#id_nodes_number').val() === '')
                   $('#id_nodes_number').val(1);
-              handle_stripe_submission = true;
+              if (payment_plan_id === '1') {  // Enabled standard plan.
+                  $('.card-form-group').removeClass('d-none');  // Unhide card section.
+                  handle_stripe_submission = true;
+              }
           } else if (new_payment_plan_id === '1') {
-              $('.card-form-group').addClass('d-none');
+              $('.card-form-group').addClass('d-none');  // Hide card section.
               $('#id_nodes_number').val(nodes_number);
               $('#id_nodes_number').attr('disabled', true);
               handle_stripe_submission = false;
-          }
-
-          if (new_payment_plan_id !== payment_plan_id) {
-              if (payment_plan_id === '1' && new_payment_plan_id === '2') {  // Enabled standard plan.
-                  $('.card-form-group').removeClass('d-none');
-              }
           }
       });
 
