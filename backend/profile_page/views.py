@@ -317,7 +317,7 @@ class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrack
         # TODO: put all in one transaction.
         self.object = form.save()  # Save the profile instance.
         payment_plan = form.cleaned_data['payment_plan']
-        nodes_number = form.cleaned_data['nodes_number']
+        nodes_number = form.cleaned_data['nodes_number_hidden']
         # Cancel an existing subscription (if not cancelled yet).
         if payment_plan == Profile.PAYMENT_PLAN_FREE:
             if self.object.has_active_subscription:

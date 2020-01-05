@@ -14,6 +14,7 @@
         {% bootstrap_field form.subscription_status %}
         {% bootstrap_field form.current_period_ends %}
         {% bootstrap_field form.nodes_number %}
+        {% bootstrap_field form.nodes_number_hidden %}
         {% bootstrap_field form.payment_method_id %}
         <div class="card-form-group form-group d-none">
           <label for="id_card_element">Credit or debit card</label>
@@ -85,6 +86,8 @@
           let new_payment_plan_id = $(this).val();
           if (new_payment_plan_id === '2') {
               $('#id_nodes_number').removeAttr('disabled');
+              if ($('#id_nodes_number').val() === '')
+                  $('#id_nodes_number').val(1);
               handle_stripe_submission = true;
           } else if (new_payment_plan_id === '1') {
               $('.card-form-group').addClass('d-none');
@@ -98,12 +101,15 @@
                   $('.card-form-group').removeClass('d-none');
               }
           }
+      });
 
-          // Handle form submission.
-          $(form).on('submit', (event) => {
-              if (!handle_stripe_submission) {
-                  return;
-              }
+      // Handle form submission.
+      $(form).on('submit', (event) => {
+          let nodes_number_hidden = $('#id_nodes_number').val();
+          if (nodes_number_hidden === '')
+              nodes_number_hidden = 1;
+          $('#id_nodes_number_hidden').val(nodes_number_hidden);
+          if (handle_stripe_submission) {
               event.preventDefault();
               stripe.createPaymentMethod({type: 'card', card: card}).then(function (result) {
                   if (result.error) {
@@ -117,7 +123,7 @@
                       form.submit();
                   }
               });
-          });
+          }
       });
   </script>
 {% endblock %}

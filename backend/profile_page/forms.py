@@ -14,8 +14,9 @@ class ProfilePaymentPlanForm(forms.ModelForm):
                                           widget=forms.TextInput(attrs={'placeholder': ''}))
     current_period_ends = forms.DateTimeField(required=False, label='Billing period ends', disabled=True,
                                               widget=forms.DateTimeInput(attrs={'placeholder': ''}))
-    nodes_number = forms.IntegerField(min_value=1, initial=1, label='Nodes number (besides 1 given for free)',
-                                      disabled=True)
+    nodes_number = forms.IntegerField(required=False, min_value=1, label='Paid nodes (besides 1 given for free)',
+                                      disabled=True, widget=forms.NumberInput(attrs={'placeholder': ''}))
+    nodes_number_hidden = forms.IntegerField(min_value=1, widget=forms.HiddenInput())
     payment_method_id = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
 
     def __init__(self, *args, **kwargs):
