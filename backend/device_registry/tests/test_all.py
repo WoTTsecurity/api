@@ -500,6 +500,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_actions_btn_pos(self):
         self.client.login(username='test', password='123')
+        self.device_no_logins.generate_recommended_actions()
         url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -881,6 +882,7 @@ class RootViewTests(TestCase):
         PortScan.objects.create(device=self.device1)
         FirewallState.objects.create(device=self.device0)
         FirewallState.objects.create(device=self.device1)
+        [d.generate_recommended_actions() for d in (self.device0, self.device1)]
 
     def test_wizard(self):
         self.client.login(username='test', password='123')
@@ -987,8 +989,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.device1.actions_count, 2)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">2</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">2</span></div>',
                           response.rendered_content)
 
     def test_recommended_actions_zero(self):
@@ -997,8 +999,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.user.profile.actions_count, 0)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">0</span></div>',
                           response.rendered_content, count=0)  # check that there is NO badge
 
 

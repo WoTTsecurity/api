@@ -5,7 +5,7 @@ $font-weight-normal: 400;
 $font-weight-bold: 600;
 $font-size-base: .875rem;
 $font-size-sm: .75rem;
-$font-size-lg: 1rem;
+$font-size-lg: .9rem;
 $font-size-xl: 1.2rem;
 $font-size-xxl:2rem;
 $headings-font-weight: 400;
@@ -99,7 +99,7 @@ $social-colors: (
 );
 
 // Body
-$body-bg: #F5F9FC;
+$body-bg: #F7F9FF;
 $body-color: $gray-700;
 
 // Common
@@ -131,7 +131,7 @@ $box-shadow-lg:    0 0.2rem 0.2rem rgba(0, 0, 0, .05);
 
 // Border radius
 $border-radius-sm: .1rem;
-$border-radius:    .2rem;
+$border-radius:     7px;
 $border-radius-lg: .3rem;
 $border-radius-xl: .6rem;
 
@@ -202,7 +202,7 @@ $sidebar-brand-font-weight: $navbar-brand-font-weight;
 $sidebar-brand-font-size: 1.15rem;
 
 // Sidebar link
-$sidebar-link-padding-y: 1.6vh;
+$sidebar-link-padding-y: 1.7vh;
 $sidebar-link-padding-x: 1.5rem;
 $sidebar-link-color: #646D7F;
 $sidebar-link-bg: transparent;

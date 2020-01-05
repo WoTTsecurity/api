@@ -1,5 +1,6 @@
 import json
 import uuid
+from collections import defaultdict
 
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
@@ -18,7 +19,7 @@ from .models import Device, average_trust_score, PortScan, FirewallState, get_bo
     RecommendedAction
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
-from .recommended_actions import action_classes, FirewallDisabledAction, Action, Severity
+from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -335,9 +336,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
-                # Stop snoozing 'Permissive firewall policy detected' recommended action.
-                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK:
-                    self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+                self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
@@ -356,6 +355,8 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
+
+        self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
@@ -488,24 +489,60 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if device_pk is not None:
                 dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
                 device_name = dev.get_name()
+                actions_qs = dev.recommendedaction_set.all()
             else:
                 device_name = None
+                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
 
-            for action_class in action_classes:
-                actions.extend(action_class.actions(self.request.user, device_pk))
+            # Select all RAs for all user's devices which are not snoozed
+            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
+
+            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
+            actions_by_id = defaultdict(list)
+            affected_devices = set()
+            for ra in active_actions:
+                affected_devices.add(ra.device.pk)
+                actions_by_id[ra.action_id].append(ra.device.pk)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
+
+            # Generate Action objects to be rendered on page for every affected RA.
+            for ra_id, device_pks in actions_by_id.items():
+                devices = [affected_devices[d] for d in device_pks]
+                a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
-            action = Action(
+            actions = [Action(
                 'Enroll your node(s) to unlock this feature',
                 'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
                 'on how to enroll your nodes.',
                 action_id=0,
                 devices=[],
                 severity=Severity.LO
-            )
-            actions.append(action)
+            )]
+
+        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
+        # and has not set up integration with any Github repo. Only shown on common actions page.
+        if not (self.request.user.profile.github_oauth_token and
+                self.request.user.profile.github_repo_id) and \
+                not kwargs.get('device_pk'):
+            actions.append(Action(
+                'Enable our GitHub integration for improved workflow',
+                'Did you know that WoTT integrates directly with GitHub? By enabling this integration, GitHub Issues '
+                'are automatically created and updated for Recommended Actions. You can then easily assign these Issues'
+                ' to team members and integrate them into your sprint planning.\n\n'
+                'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
+                'You can find the GitHub integration settings in under your profile in the upper right-hand corner.',
+                action_id=0,
+                devices=[],
+                severity=Severity.LO
+            ))
 
         context = super().get_context_data(**kwargs)
+
+        # Sort actions by severity and then by action id, effectively grouping subclasses together.
+        actions.sort(key=lambda a: (a.severity.value, a.action_id))
+
         context['actions'] = actions
         context['device_name'] = device_name
         return context

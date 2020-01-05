@@ -1,23 +1,24 @@
 .navbar {
   border-bottom: $navbar-border-bottom;
-  padding: 2.5rem 2.25rem;
-  @include mQ($browser-width-md) {
-    padding: 1.9rem 2.25rem;
+  padding: 2.45rem 2.5rem;
+  @include media-breakpoint-down(lg) {
+    padding: 2rem 1.5rem;
   }
 
   h1 {
-    font-size: 2rem; 
+    font-size: 2.1rem; 
     font-weight: bolder;
+    margin-top: 5px;
     @include mQ($browser-width-md) {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
+      margin-top: 10px;
     }
   }
 
   .navbar-nav {
     width: auto;
     background-color: #E9EDF8;
-    border-top-left-radius: 7px;
-    border-bottom-left-radius: 7px;
+    border-radius : $border-radius;
   }
 
   .navbar-collapse {
@@ -25,35 +26,42 @@
     justify-content: space-between;
   }
 
-  .dropdown-toggle:after {
-    padding: 2.5px;
+  .nav-linkq {
+    display: flex;
+  }
+  
+  a.nav-linkq {
+    text-decoration: none;
   }
 
-  @include media-breakpoint-down(md) {
-    width: 100vw;
+  #username-box {
+    color: #252B36 !important;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+  }
+  
+  .icon-container {
+    border-top-right-radius: $border-radius;
+    border-bottom-right-radius: $border-radius;
+    background-color: #dde3f3;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .dropdown-toggle:after {
+        border-width: 2px 2px 0px 0px;
+        display: inline-block;
+        padding: 2.5px;
+        transform: rotate(45deg);
+        color: #1751B7;
+        vertical-align: .1em !important;
+    }
   }
 }
 
 .navbar-brand {
   font-weight: $navbar-brand-font-weight;
-}
-
-#username-box {
-  margin-right: 55px;
-  color: #252B36 !important;
-  font-weight: 700;
-  @include mQ($browser-width-md) {
-    font-size: 0.83rem;
-  }
-}
-
-.icon-box {
-  width: 25%;
-  height: 100%;
-  background-color: #DDE3F3;
-  position: absolute;
-  right: 0;
-  top: 0;
 }
 
 .nav-icon,
@@ -82,7 +90,8 @@
 }
 
 .nav-item {
-  padding: 7px 25px;
+  display: flex;
+  padding: 0px;;
 
   .circle-red {
     background: #f00;

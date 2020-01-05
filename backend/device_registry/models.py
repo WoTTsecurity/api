@@ -3,9 +3,11 @@ import datetime
 from statistics import mean
 import json
 import uuid
+from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,7 +17,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import action_classes
+from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, Severity, PUBLIC_SERVICE_PORTS
 
 apt_pkg.init()
 
@@ -23,11 +25,6 @@ DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
-PUBLIC_SERVICE_PORTS = {
-    'mongod': (27017, 'MongoDB'),
-    'mysqld': (3306, 'MySQL/MariaDB'),
-    'memcached': (11211, 'Memcached')
-}
 FTP_PORT = 21
 
 
@@ -75,16 +72,12 @@ class DebPackage(models.Model):
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
 
 
-SSHD_CONFIG_PARAMS_INFO = {
-    'PermitEmptyPasswords': ('no', None),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin'),
-    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication'),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication'),
-    'Protocol': ('2', None)
-}
-
-
 class Device(models.Model):
+    class SshdIssueItem(NamedTuple):
+        safe_value: str
+        unsafe_value: str
+        severity: Severity
+
     device_id = models.CharField(
         max_length=128,
         unique=True,
@@ -120,6 +113,9 @@ class Device(models.Model):
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
 
+    class Meta:
+        ordering = ('created',)
+
     @property
     def eol_info(self):
         """
@@ -136,8 +132,8 @@ class Device(models.Model):
 
     def snooze_action(self, action_id, snoozed, duration=None):
         action, _ = RecommendedAction.objects.get_or_create(action_id=action_id, device=self)
-        action.snoozed = snoozed
-        if snoozed == RecommendedAction.Snooze.UNTIL_TIME:
+        action.status = snoozed
+        if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
             action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
         else:
             action.snoozed_until = None
@@ -210,27 +206,13 @@ class Device(models.Model):
         if self.audit_files:
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
-                    issues = []
-                    for k, v in file_info['issues'].items():
-                        issues.append((k, v, SSHD_CONFIG_PARAMS_INFO[k]))
-                    return issues
+                    return {k: self.SshdIssueItem(unsafe_value=v, safe_value=SSHD_CONFIG_PARAMS_INFO[k].safe_value,
+                                                  severity=SSHD_CONFIG_PARAMS_INFO[k].severity)
+                            for k, v in file_info['issues'].items()}
 
     @property
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
-
-    INSECURE_SERVICES = [
-        'fingerd',
-        'tftpd',
-        'telnetd',
-        'snmpd',
-        'xinetd',
-        'nis',
-        'atftpd',
-        'tftpd-hpa',
-        'rsh-server',
-        'rsh-redone-server'
-    ]
 
     @property
     def insecure_services(self):
@@ -240,7 +222,7 @@ class Device(models.Model):
         """
         if not self.deb_packages_hash:
             return None
-        return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
+        return self.deb_packages.filter(name__in=[service.name for service in INSECURE_SERVICES])
 
     def set_deb_packages(self, packages, os_info):
         """
@@ -324,10 +306,7 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
-            return sum(
-                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
-            )
+        return self.recommendedaction_set.filter(RecommendedAction.get_affected_query()).count()
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
@@ -346,6 +325,8 @@ class Device(models.Model):
         Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
         :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
         """
+        if not hasattr(self, 'deviceinfo'):
+            return
         processes = self.deviceinfo.processes
         found = set()
         for p in processes.values():
@@ -482,8 +463,43 @@ class Device(models.Model):
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
-    class Meta:
-        ordering = ('created',)
+    def generate_recommended_actions(self, classes=None):
+        """
+        Generate RAs for this device and store them as RecommendedAction objects in database.
+
+        If a RecommendedAction object exists and it is in snoozed status: if the RA still affects the device
+        then it will stay snoozed, otherwise its status changes to NOT_AFFECTED.
+
+        If a RecommendedAction object for some RA does not exist it will be created.
+        :param classes: if supplied, limit the scope of this method to this list of BaseAction classes.
+        :return:
+        """
+        ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
+        ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
+                                                .values_list('action_id', flat=True)
+        newly_affected = []
+        newly_not_affected = []
+        added = []
+        for action_class in ActionMeta.all_classes() if classes is None else classes:
+            is_affected = action_class.is_affected(self)
+            if action_class.action_id not in ra_all:
+                # If a RecommendedAction object for some RA does not exist it will be created.
+                added.append((action_class.action_id, is_affected))
+            elif is_affected and action_class.action_id not in ra_affected:
+                # A RecommendedAction object is not in AFFECTED status, but the RA affects the device
+                newly_affected.append(action_class.action_id)
+            elif not is_affected and action_class.action_id in ra_affected:
+                # A RecommendedAction object is in AFFECTED or SNOOZED_* status, but the RA doesn't affect the device
+                newly_not_affected.append(action_class.action_id)
+        n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
+            .update(status=RecommendedAction.Status.AFFECTED)
+        n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
+            .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
+        ra_new = [RecommendedAction(action_id=action_id, device=self,
+                                    status=RecommendedAction.Status.AFFECTED if affected else
+                                    RecommendedAction.Status.NOT_AFFECTED) for action_id, affected in added]
+        self.recommendedaction_set.bulk_create(ra_new)
+        return n_affected, n_unaffected, len(ra_new)
 
 
 class DeviceInfo(models.Model):
@@ -841,14 +857,54 @@ class Distro(models.Model):
 
 
 class RecommendedAction(models.Model):
-    class Snooze(IntEnum):
-        NOT_SNOOZED = 0
-        UNTIL_PING = 1
-        UNTIL_TIME = 2
-        FOREVER = 3
+    class Meta:
+        unique_together = ['device', 'action_id']
+
+    class Status(IntEnum):
+        AFFECTED = 0
+        SNOOZED_UNTIL_PING = 1
+        SNOOZED_UNTIL_TIME = 2
+        SNOOZED_FOREVER = 3
+        NOT_AFFECTED = 4
+
+    @staticmethod
+    def get_affected_query():
+        return Q(status=RecommendedAction.Status.AFFECTED) | \
+               Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
+                 snoozed_until__lt=timezone.now())
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_id = models.PositiveSmallIntegerField()
-    snoozed = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Snooze],
-                                               default=Snooze.NOT_SNOOZED.value)
+    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
+                                              default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def update_all_devices(cls, classes=None):
+        """
+        Generate RAs for all devices which don't have them. Tries to do this in bulk by using .affected_devices()
+        therefore if it's written properly this method will execute quickly.
+        It is to be used during migration when a new RA is added.
+        If classes is supplied the scope of this method will be limited to this list of RA classes.
+        :param classes: a list of BaseAction child classes.
+        :return: a number of new RecommendedAction objects created.
+        """
+        created = []
+        if classes is None:
+            classes = ActionMeta.all_classes()
+        for action_class in classes:
+            # Select devices which were not yet processed with this RA.
+            qs = Device.objects.exclude(Q(recommendedaction__action_id=action_class.action_id) |
+                                        Q(owner__isnull=True)).only('pk')
+            if not qs.exists():
+                continue
+            all_devices = set(qs)
+            affected = set(action_class.affected_devices(qs))
+            not_affected = all_devices.difference(affected)
+            created += [cls(device=d, action_id=action_class.action_id, status=cls.Status.NOT_AFFECTED)
+                        for d in not_affected] + \
+                       [cls(device=d, action_id=action_class.action_id, status=cls.Status.AFFECTED)
+                        for d in affected]
+        cls.objects.bulk_create(created)
+        return len(created)

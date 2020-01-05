@@ -6,7 +6,6 @@
 {% endblock %}
 
 {% block js %}
-
 {% endblock %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
@@ -16,11 +15,11 @@
     <nav class="sidebar sidebar-sticky">
       <div class="sidebar-content">
         <a class="sidebar-brand" href="{% url 'root' %}">
-          <img class="logo-image" src="{% static '/media/Logo.png' %}" alt="WoTT">
+          <img class="logo-image" src="{% static '/media/logo.png' %}" alt="wott">
         </a>
         <button type="button" class="btn btn-wott-primary btn-lg btn-block" id="admin-inst-btn">
           Add A Node
-          <img src="{% static '/media/plus.png' %}" alt="Plus">
+          <img src="{% static '/media/plus.png' %}" alt="plus">
         </button>
 
         {% with url_name=request.resolver_match.url_name %}
@@ -28,9 +27,9 @@
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">
                 {% if url_name|is_menu_highlight_id:'root' %}
-                <img src="{% static '/media/dashboard-selected.png' %}" alt="Dashboard">
+                <img src="{% static '/media/dashboard-selected.png' %}" alt="dashboard">
                 {% else %}
-                <img src="{% static '/media/dashboard.png' %}" alt="Dashboard">
+                <img src="{% static '/media/dashboard.png' %}" alt="dashboard">
                 {% endif %}
                 <h4>Dashboard</h4>
               </a>
@@ -38,9 +37,9 @@
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'cve' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-cve" href="#">
                 {% if url_name|is_menu_highlight_id:'cve' %}
-                <img src="{% static '/media/cve-selected.png' %}" alt="CVE">
+                <img src="{% static '/media/cve-selected.png' %}" alt="cve">
                 {% else %}
-                <img src="{% static '/media/cve.png' %}" alt="CVE">
+                <img src="{% static '/media/cve.png' %}" alt="cve">
                 {% endif %}
                 <h4>CVE</h4>
               </a>
@@ -48,9 +47,9 @@
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'nodes' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-nodes" href="#">
                 {% if url_name|is_menu_highlight_id:'nodes' %}
-                <img src="{% static '/media/nodes-selected.png' %}" alt="CVE">
+                <img src="{% static '/media/nodes-selected.png' %}" alt="nodes">
                 {% else %}
-                <img id="nodes-image" src="{% static '/media/nodes.png' %}" alt="Nodes">
+                <img id="nodes-image" src="{% static '/media/nodes.png' %}" alt="nodes">
                 {% endif %}
                 <h4>Nodes</h4>
               </a>
@@ -58,9 +57,9 @@
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">
                 {% if url_name|is_menu_highlight_id:'claim-device' %}
-                <img src="{% static '/media/add-node-selected.png' %}" alt="CVE">
+                <img src="{% static '/media/add-node-selected.png' %}" alt="claim device">
                 {% else %}
-                <img src="{% static '/media/add-node.png' %}" alt="CVE">
+                <img src="{% static '/media/add-node.png' %}" alt="claim device">
                 {% endif %}
                 <h4>Claim Node</h4>
               </a>
@@ -68,16 +67,21 @@
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
               <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
                 {% if url_name|is_menu_highlight_id:'actions' %}
-                <img src="{% static '/media/verified-selected.png' %}" alt="CVE">
+                <img src="{% static '/media/verified-selected.png' %}" alt="recommended actions">
                 {% else %}
-                <img id="actions-image" src="{% static '/media/verified.png' %}" alt="Recommended Actions">
-                {% endif %}    
+                <img id="actions-image" src="{% static '/media/verified.png' %}" alt="recommended actions">
+                {% endif %}
                 <h4>Recommended Actions</h4>
                 {% with user.profile.actions_count as actions_count %}
                 {% if actions_count %}
-                <span class="badge wott-badge-pill">{{ actions_count }}</span>
+                <div class="badge wott-badge-pill">
+                  <span id="actions-sidebar" class="wott-badge-text">{{ actions_count }}</span>
+                </div>
                 {% endif %}
                 {% endwith %}
+                <div class="badge wott-badge-pill">
+                  <span id="actions-sidebar" class="wott-badge-text">17</span>
+                </div>
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
@@ -124,10 +128,10 @@
           {% endblock dashboard_title %}
           <ul class="navbar-nav">
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
-                <span id="username-box" class="text-dark">{{ user.username }}</span>
-                <span class="icon-box"></span>
-              </a>
+              <a class="nav-linkq" href="#" data-toggle="dropdown">
+              <div id="username-box" class="text-dark">{{ user.username }}</div>
+              <div class="icon-container"><span class="dropdown-toggle"></span></div>
+            </a>
               <div class="dropdown-menu dropdown-menu-right">
                 <a class="dropdown-item" href="{% url 'profile' %}"><i class="align-middle mr-1" data-feather="user"></i>Profile</a>
                 <div class="dropdown-divider"></div>
@@ -155,19 +159,6 @@
 {% block scripts %}
   {{ block.super }}
   <script src="{% static '/js/csrf.js' %}"></script>
-  <script>
-
-    // Side graphics
-    let trustScore = document.getElementById('trust-score').textContent;
-    let actionSolved = document.getElementById('action-solved');
-    let actionSolvedText = actionSolved.textContent;
-    let solved = parseInt(actionSolvedText.split('/')[0]);
-    let actions = parseInt(actionSolvedText.split('/')[1]);
-    
-    document.getElementById('action-solved-var').style.width =  parseInt(solved / actions * 100) + '%';
-    $(document).ready(document.getElementById('trust-graph-var').style.width = trustScore)
-
-  </script>
   <script type="text/javascript">
       $(() => {
           feather.replace();
@@ -193,6 +184,23 @@
           "$email": "{{ user.email }}",
           "$phone": "{{ user.profile.phone }}"
       });
+
+      
     {% endif %}
+
+    // Side graphics & Recommended Actions Badge
+    let trustScore = $('#trust-score').text();
+    let actionSolved = $('#action-solved').text();
+    let solved = parseInt(actionSolved.split('/')[0]);
+    let actions = parseInt(actionSolved.split('/')[1]);
+    let actionSolvedPercentage = (solved / actions * 100) + '%';
+    let recomdActions = $('#actions-sidebar'); 
+    
+    $(window).on('load', function() {
+      document.getElementById('action-solved-var').style.width =  actionSolvedPercentage;
+      document.getElementById('trust-graph-var').style.width = trustScore;
+      parseInt(recomdActions.text()) > 99 ? recomdActions.text('99+'): null;
+    })
+
   </script>
 {% endblock %}

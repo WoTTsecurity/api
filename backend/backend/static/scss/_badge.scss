@@ -14,16 +14,19 @@
 
 .wott-badge-pill {
   padding: 5px;
-  padding-left: 4px;
-  font-size: .83rem;
-  width: 24px;
-  height: 23px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background-color: #ef2f20;
-  margin-left: 15px;
-  margin-right: 15px;
   font-weight: 700;
-  @include mQ($browser-width-md) {
-    font-size: 0.76rem;
-  }
+  font-size: .65rem;
+  line-height: .85rem;
+  margin-left: 5%;
+  margin-right: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.wott-badge-text {
+  display: inline-block;
 }

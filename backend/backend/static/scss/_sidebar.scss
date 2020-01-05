@@ -13,10 +13,13 @@
 
   .logo-image {
     width: 75%;
+    @include mQ($browser-width-md) {
+      width: 85%;
+    }
   }
 
   .sidebar-nav {
-    padding: 2.5rem 0;
+    padding: 4vh 0;
     list-style: none;
 
     li {
@@ -27,8 +30,12 @@
         margin-bottom: 0;
         font-size: 0.95rem;
         font-weight: 600;
+        width:65%;
         @include mQ($browser-width-md) {
           font-size: 0.8rem;
+        }
+        @include media-breakpoint-down(lg) {
+          width: 60%;
         }
       }
 
@@ -53,7 +60,7 @@
       padding: 13px;
       margin: auto;
       font-size: $font-size-lg;
-      border-radius: $border-radius-xl; 
+      border-radius: $border-radius; 
 
       img {
         margin-left: 15px;
@@ -64,7 +71,7 @@
  
   .sidebar-bottom {
     height: 27vh;
-    background-color: rgba(255,255,255,0.4);
+    background-image: linear-gradient(90deg, rgb(238,241,255), rgb(234,238,255));
     color: $wott-nav;
     position: fixed;
     bottom: 0;
@@ -183,13 +190,13 @@ a.sidebar-link {
 
 #trust-graph-100, #action-solved-graph {
   width: 100%;
-  height: 10px;
+  height: 12px;
   position: relative;
   border-radius: 30px;
 }
 
 #trust-graph-var, #action-solved-var {
-  height: 10px;
+  height: 12px;
   display: block;
   position: absolute;
   top: 0;
