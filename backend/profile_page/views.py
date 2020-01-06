@@ -198,8 +198,9 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
             # Load automatically created (with the subscription) invoice info from Stripe.
             customer._sync_invoices(subscription=subscription.id)
 
-            if subscription.status == 'active':
-                pass
+            if subscription.status == 'active' or \
+                    (subscription.status == 'trialing' and subscription.pending_setup_intent is None):
+                pass  # No card security check required.
             elif subscription.status in ('trialing', 'incomplete'):
                 if subscription.status == 'trialing':
                     intent = subscription.pending_setup_intent
@@ -408,8 +409,9 @@ class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrack
                 # Load automatically created (with the subscription) invoice info from Stripe.
                 customer._sync_invoices(subscription=subscription.id)
 
-                if subscription.status == 'active':
-                    pass
+                if subscription.status == 'active' or \
+                        (subscription.status == 'trialing' and subscription.pending_setup_intent is None):
+                    pass  # No card security check required.
                 elif subscription.status in ('trialing', 'incomplete'):
                     if subscription.status == 'trialing':
                         intent = subscription.pending_setup_intent
