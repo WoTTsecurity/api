@@ -58,10 +58,22 @@
         vertical-align: .1em !important;
     }
   }
-}
 
-.navbar-brand {
-  font-weight: $navbar-brand-font-weight;
+  #username-box {
+    color: #252B36 !important;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+  }
+  
+  .icon-container {
+    border-top-right-radius: $border-radius;
+    border-bottom-right-radius: $border-radius;
+    background-color: #dde3f3;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .nav-icon,
