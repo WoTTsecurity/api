@@ -127,24 +127,23 @@
 
       // Handle form submission.
       $(form).on('submit', (event) => {
-          if (!handle_stripe_submission) {
-              return;
+          if (handle_stripe_submission) {
+              event.preventDefault();
+              stripe.createPaymentMethod({
+                  type: 'card', card: card, billing_details: {email: $('#id_email').val()}
+              }).then(function (result) {
+                  if (result.error) {
+                      // Inform the user if there was an error.
+                      errorElement.textContent = result.error.message;
+                  } else {
+                      // Save Stripe payment id to the hidden field.
+                      var hiddenInput = form.elements["payment_method_id"];
+                      hiddenInput.setAttribute('value', result.paymentMethod.id);
+                      // Submit the form.
+                      form.submit();
+                  }
+              });
           }
-          event.preventDefault();
-          stripe.createPaymentMethod({
-              type: 'card', card: card, billing_details: {email: $('#id_email').val()}
-          }).then(function (result) {
-              if (result.error) {
-                  // Inform the user if there was an error.
-                  errorElement.textContent = result.error.message;
-              } else {
-                  // Save Stripe payment id to the hidden field.
-                  var hiddenInput = form.elements["payment_method_id"];
-                  hiddenInput.setAttribute('value', result.paymentMethod.id);
-                  // Submit the form.
-                  form.submit();
-              }
-          });
       });
   </script>
 {% endblock %}
