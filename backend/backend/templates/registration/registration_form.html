@@ -33,6 +33,7 @@
                     {% bootstrap_field form.company %}
                     {% bootstrap_field form.phone %}
                     {% bootstrap_field form.payment_plan %}
+                    {% bootstrap_field form.total_sum form_group_class="free-hidden form-group d-none" %}
                     {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
                     {% bootstrap_field form.payment_method_id %}
                     <div class="free-hidden form-group d-none">
@@ -63,6 +64,8 @@
   {{ block.super }}
   <script>
       let handle_stripe_submission = false;
+      let price_per_node = $('#id_total_sum').val();
+
       // Show hidden section after page reload (due failed form validation by Django) if it's needed.
       if ($('#id_payment_plan').val() !== '1') {
           $('.free-hidden').removeClass('d-none');
@@ -82,6 +85,12 @@
               $('.free-hidden').removeClass('d-none');
               handle_stripe_submission = true;
           }
+      });
+
+      // Update the total sum field value.
+      $('#id_nodes_number').change(function () {
+          //alert($(this).val());
+          $('#id_total_sum').val($(this).val() * price_per_node);
       });
 
       // Stripe related stuff.

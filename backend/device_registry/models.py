@@ -133,7 +133,7 @@ class Device(models.Model):
         Guess if the device is 'free', 'paid' or 'unpaid'.
         """
         if self.pk and self.owner:
-            devices = self.owner.devices.order_by('id')
+            devices = self.owner.devices.order_by('pk')
             if self.pk == devices[0].pk:
                 return 'free'
             if self.pk in devices[1:1 + self.owner.profile.paid_nodes_number].values_list('pk', flat=True):

@@ -13,6 +13,7 @@
         {% bootstrap_field form.payment_plan %}
         {% bootstrap_field form.subscription_status %}
         {% bootstrap_field form.current_period_ends %}
+        {% bootstrap_field form.total_sum %}
         {% bootstrap_field form.nodes_number %}
         {% bootstrap_field form.nodes_number_hidden %}
         {% bootstrap_field form.payment_method_id %}
@@ -42,6 +43,7 @@
       let form = document.getElementById('id_payments_form');
       let errorElement = document.getElementById('id_card_errors');
       let handle_stripe_submission = false;
+      let price_per_node = {{ PRICE_PER_NODE }};
 
       const style = {
           base: {
@@ -86,8 +88,10 @@
           let new_payment_plan_id = $(this).val();
           if (new_payment_plan_id === '2') {
               $('#id_nodes_number').removeAttr('disabled');
-              if ($('#id_nodes_number').val() === '')
+              if ($('#id_nodes_number').val() === '') {
                   $('#id_nodes_number').val(1);
+                  $('#id_total_sum').val(price_per_node);
+              }
               if (payment_plan_id === '1') {  // Enabled standard plan.
                   $('.card-form-group').removeClass('d-none');  // Unhide card section.
                   handle_stripe_submission = true;
@@ -95,9 +99,19 @@
           } else if (new_payment_plan_id === '1') {
               $('.card-form-group').addClass('d-none');  // Hide card section.
               $('#id_nodes_number').val(nodes_number);
+              if (nodes_number)
+                  $('#id_total_sum').val(nodes_number * price_per_node);
+              else
+                  $('#id_total_sum').val('');
               $('#id_nodes_number').attr('disabled', true);
               handle_stripe_submission = false;
           }
+      });
+
+      // Update the total sum field value.
+      $('#id_nodes_number').change(function () {
+          //alert($(this).val());
+          $('#id_total_sum').val($(this).val() * price_per_node);
       });
 
       // Handle form submission.

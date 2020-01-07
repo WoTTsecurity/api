@@ -305,3 +305,4 @@ WOTT_STANDARD_PLAN_ID = 'plan_GLUYYLh2OnuJwI'  # Monthly with 30d trial.
 # WOTT_STANDARD_PLAN_ID = 'plan_GNgOchjZ4tXkQO'  # Monthly without trial.
 # WOTT_STANDARD_PLAN_ID = 'plan_GQiy3tSBzYYuM9'  # Daily without trial.
 # WOTT_STANDARD_PLAN_ID = 'plan_GQnlf795k5cWIY'  # Daily with 1d trial.
+WOTT_PRICE_PER_NODE = 9

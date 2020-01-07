@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm as DjangoAuthenticationForm
 from django.contrib.auth.forms import PasswordChangeForm as DjangoPasswordChangeForm
+from django.conf import settings
 
 from registration.forms import RegistrationFormUniqueEmail, User
 
@@ -18,6 +19,8 @@ class ProfilePaymentPlanForm(forms.ModelForm):
                                       disabled=True, widget=forms.NumberInput(attrs={'placeholder': ''}))
     nodes_number_hidden = forms.IntegerField(min_value=1, widget=forms.HiddenInput())
     payment_method_id = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
+    total_sum = forms.IntegerField(required=False, disabled=True, label="You'll be charged (USD)",
+                                   widget=forms.NumberInput(attrs={'placeholder': ''}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,6 +72,9 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES[:2])
     nodes_number = forms.IntegerField(min_value=1, initial=1, label='Nodes number (besides 1 given for free)')
     payment_method_id = forms.CharField(max_length=255, widget=forms.HiddenInput(), required=False)
+    total_sum = forms.IntegerField(required=False, initial=settings.WOTT_PRICE_PER_NODE, disabled=True,
+                                   label="You'll be charged (USD, after the 30 days free trial period end)",
+                                   widget=forms.NumberInput(attrs={'placeholder': ''}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

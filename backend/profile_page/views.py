@@ -139,7 +139,7 @@ class RegistrationView(StripeContextMixin, BaseRegistrationView):
         profile.save(update_fields=['payment_plan', 'company_name', 'phone'])
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
-                                 'Congratulations! We won\'t charge you for this plan for now.')
+                                 'You\'ll be charged in 30 days. You can cancel your subscription until then.')
 
         # Create the stripe Customer.
         if profile.payment_plan == Profile.PAYMENT_PLAN_STANDARD:
@@ -441,6 +441,7 @@ class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrack
         nodes_number = self.request.user.profile.paid_nodes_number
         if nodes_number:
             initial['nodes_number'] = nodes_number
+            initial['total_sum'] = nodes_number * settings.WOTT_PRICE_PER_NODE
         initial['subscription_status'] = self.request.user.profile.subscription_status_text
         initial['current_period_ends'] = self.request.user.profile.current_period_end
         return initial
@@ -448,6 +449,7 @@ class PaymentPlanView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTrack
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['STRIPE_PUBLIC_KEY'] = djstripe.settings.STRIPE_PUBLIC_KEY
+        context['PRICE_PER_NODE'] = settings.WOTT_PRICE_PER_NODE
         return context
 
 
