@@ -44,6 +44,7 @@ class Profile(models.Model):
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
     github_issues = JSONField(blank=True, default=dict)
+    unlimited_customer = models.BooleanField(default=False)
 
     @property
     def current_period_end(self):
