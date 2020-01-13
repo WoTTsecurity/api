@@ -15,13 +15,12 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 
 from profile_page.mixins import LoginTrackMixin
-from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord
+from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, RecommendedAction, HistoryRecord
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
+from .mixins import DeviceListFilterMixin, ConvertPortsInfoMixin, BlockUnpaidNodeMixin
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -53,7 +52,7 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
                 'Recommended Actions'
             ],
             filter_params=[(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
-                            self.FILTER_FIELDS.items()],
+                           self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
             filter=self.filter_dict
@@ -141,7 +140,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
 
         history = HistoryRecord.objects \
             .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
-            .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\
+            .annotate(week=Case(*cases, output_field=IntegerField())).values('week') \
             .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
 
         _, actions = self.get_actions()
@@ -164,17 +163,6 @@ class GlobalPoliciesListView(LoginRequiredMixin, LoginTrackMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
-
-
-class ConvertPortsInfoMixin:
-    def dicts_to_lists(self, ports):
-        if ports:
-            return [[d[k] for k in ('address', 'protocol', 'port', 'ip_version')] for d in ports]
-        else:
-            return []
-
-    def lists_to_dicts(self, ports):
-        return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
 
 
 class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, ConvertPortsInfoMixin):
@@ -316,7 +304,7 @@ def claim_device_view(request):
     })
 
 
-class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_overview.html'
 
@@ -340,6 +328,8 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
             if 'revoke_button' in form.data:
@@ -353,7 +343,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailSoftwareView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_software.html'
 
@@ -374,7 +364,7 @@ class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailSecurityView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_security.html'
 
@@ -413,6 +403,8 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
@@ -458,7 +450,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
-class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailNetworkView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
@@ -479,7 +471,7 @@ class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailHardwareView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_hardware.html'
 
@@ -500,7 +492,7 @@ class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailMetadataView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_metadata.html'
 
@@ -532,6 +524,8 @@ class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
         if form.is_valid() and "device_metadata" in form.cleaned_data:
             self.object.deviceinfo.device_metadata = form.cleaned_data["device_metadata"]
@@ -578,6 +572,12 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedAct
     Handle 2 different url patterns: one for all user's devices, another of particular device.
     """
     template_name = 'actions.html'
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if self.device is not None and self.device.payment_status == 'unpaid':
+            return HttpResponseForbidden()
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         device_name, actions = self.get_actions(kwargs.get('device_pk'))

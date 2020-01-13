@@ -108,37 +108,37 @@ services:
     image: redis:5.0-alpine
     command: redis-server
 
-  celery:
-    environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-    build:
-      context: .
-    command: celery worker -A backend -O fair -l error --concurrency=4 --time-limit=65 --soft-time-limit=60 --pidfile="/tmp/celery.pid"
-    volumes:
-      - ./backend:/usr/src/app
-    depends_on:
-      - psql
-      - migrate
-      - redis
-      - python-base
-
-  celery-beat:
-    environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-    build:
-      context: .
-    command: celery beat -A backend -l error --pidfile="/tmp/celerybeat.pid" -s "/tmp/celerybeat-schedule"
-    volumes:
-      - ./backend:/usr/src/app
-    depends_on:
-      - psql
-      - migrate
-      - redis
-      - python-base
+#  celery:
+#    environment:
+#      - DJANGO_SETTINGS_MODULE=backend.settings.dev
+#      - DB_PASSWORD=SuperSecurePassword
+#      - DB_USER=postgres
+#    build:
+#      context: .
+#    command: celery worker -A backend -O fair -l error --concurrency=4 --time-limit=65 --soft-time-limit=60 --pidfile="/tmp/celery.pid"
+#    volumes:
+#      - ./backend:/usr/src/app
+#    depends_on:
+#      - psql
+#      - migrate
+#      - redis
+#      - python-base
+#
+#  celery-beat:
+#    environment:
+#      - DJANGO_SETTINGS_MODULE=backend.settings.dev
+#      - DB_PASSWORD=SuperSecurePassword
+#      - DB_USER=postgres
+#    build:
+#      context: .
+#    command: celery beat -A backend -l error --pidfile="/tmp/celerybeat.pid" -s "/tmp/celerybeat-schedule"
+#    volumes:
+#      - ./backend:/usr/src/app
+#    depends_on:
+#      - psql
+#      - migrate
+#      - redis
+#      - python-base
 
 volumes:
   db-data:

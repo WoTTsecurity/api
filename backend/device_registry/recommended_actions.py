@@ -212,14 +212,14 @@ class BaseAction:
         from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
-                                                   device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
+                                                   device__last_ping__gte=day_ago) \
+            .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
         if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
         affected_list = ['- [{x}] {device}'
-                         .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
-                                 device=device_link(a.device, absolute=True))
+                             .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
+                                     device=device_link(a.device, absolute=True))
                          for a in actions]
         resolved = '\n'.join(affected_list)
         context = cls.get_context(affected_devices)
@@ -263,6 +263,7 @@ class GroupedAction:
     GroupedAction classes must have group_action_main and group_action_title declared. The registered subclasses must
     have group_action_section_title and group_action_section_body declared.
     """
+
     @classmethod
     def get_description(cls, user, **kwargs):
         """
@@ -398,8 +399,8 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
         firewallstate = getattr(device, 'firewallstate', None)
         return firewallstate is not None and \
                (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK \
-                if firewallstate.global_policy is None \
-                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
+                    if firewallstate.global_policy is None \
+                    else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
 
 
 # Vulnerable packages found action.
@@ -598,7 +599,7 @@ class BasePubliclyAccessibleServiceAction(BaseAction):
     group_action = PubliclyAccessibleServiceGroupAction
     action_title = 'Your {service} instance may be publicly accessible'
     action_description = \
-        'We detected that a {service} instance on {devices} may be accessible remotely. Consider either blocking '\
+        'We detected that a {service} instance on {devices} may be accessible remotely. Consider either blocking ' \
         'port {port} through the WoTT firewall management tool, or re-configure {service} to only listen on localhost.'
     group_action_section_body = action_description
     severity = Severity.HI

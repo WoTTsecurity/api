@@ -28,5 +28,6 @@ urlpatterns = [
     path('user/', include('profile_page.urls')),
     path('', include('device_registry.urls')),
     path('monitoring/', include('monitoring.urls')),
-    url('', include('django_prometheus.urls'))
+    url('', include('django_prometheus.urls')),
+    path("stripe/", include("djstripe.urls", namespace="djstripe")),
 ]

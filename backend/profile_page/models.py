@@ -26,12 +26,10 @@ def user_save_lower(sender, instance, *args, **kwargs):
 class Profile(models.Model):
     PAYMENT_PLAN_FREE = 1
     PAYMENT_PLAN_STANDARD = 2
-    PAYMENT_PLAN_PROFESSIONAL = 3
-    PAYMENT_PLAN_ENTERPRISE = 4
+    PAYMENT_PLAN_ENTERPRISE = 3
     PAYMENT_PLAN_CHOICES = (
-        (PAYMENT_PLAN_FREE, 'Free'),
-        (PAYMENT_PLAN_STANDARD, 'Standard'),
-        (PAYMENT_PLAN_PROFESSIONAL, 'Professional'),
+        (PAYMENT_PLAN_FREE, 'Free (1 node limit)'),
+        (PAYMENT_PLAN_STANDARD, 'Standard (paid per node) with 1 month free trial'),
         (PAYMENT_PLAN_ENTERPRISE, 'Enterprise')
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -46,6 +44,59 @@ class Profile(models.Model):
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
     github_issues = JSONField(blank=True, default=dict)
+    unlimited_customer = models.BooleanField(default=False)
+
+    @property
+    def current_period_end(self):
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            if subscription.status == 'trialing':
+                return subscription.trial_end
+            elif subscription.status == 'active':
+                return subscription.current_period_end
+            else:
+                raise NotImplementedError(f'Subscription status `{subscription.status}` is not supported.')
+
+    @property
+    def subscription_status_text(self):
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            status = subscription.status
+            if subscription.is_status_temporarily_current():
+                status = f'{status} (cancellation scheduled)'
+            return status
+
+    @property
+    def djstripe_customer(self):
+        customers = self.user.djstripe_customers.all()
+
+        if customers.count() > 1:
+            raise Exception("This user has multiple djstripe customers. Use `self.user.djstripe_customers` "
+                            "to access them.")
+        else:
+            return customers.first()
+
+    @property
+    def has_active_subscription(self):
+        """
+        Check if a user has an active subscription.
+        """
+        customer = self.djstripe_customer
+        if customer and customer.has_active_subscription():
+            return True
+        return False
+
+    @property
+    def paid_nodes_number(self):
+        """
+        Return the number of nodes a user has an active subscription for.
+        It's supposed one user has only one Stripe customer instance and one Stripe subscription.
+        """
+        if self.has_active_subscription:
+            subscription = self.djstripe_customer.subscription
+            if subscription and subscription.quantity > 0:
+                return subscription.quantity
+        return 0
 
     @property
     def actions_count(self):
@@ -95,4 +146,3 @@ class Profile(models.Model):
         HistoryRecord.objects.create(owner=self.user,
                                      recommended_actions_resolved=ra_resolved.count(),
                                      average_trust_score=self.average_trust_score)
-

@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, Avg
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -125,6 +126,24 @@ class Device(models.Model):
             return True
         elif self.deviceinfo.default_password is not None:
             return self.deviceinfo.default_password
+
+    @cached_property
+    def payment_status(self):
+        """
+        Guess if the device is 'free', 'paid' or 'unpaid'.
+        """
+        if self.pk and self.owner:
+            devices = self.owner.devices.order_by('pk')
+            if self.pk == devices[0].pk:
+                return 'free'
+            # For an `unlimited` customer all nodes are paid regardless of his subscription status.
+            if hasattr(self.owner, 'profile') and self.owner.profile.unlimited_customer:
+                return 'paid'
+            if self.pk in devices[1:1 + self.owner.profile.paid_nodes_number].values_list('pk', flat=True):
+                return 'paid'
+            else:
+                return 'unpaid'
+        return None
 
     @property
     def eol_info(self):
