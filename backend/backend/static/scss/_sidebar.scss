@@ -41,9 +41,6 @@
 
       img {
         margin-right: 15px;
-        @include mQ($browser-width-md) {
-          width: 8%;
-        }
       }
     }
   }
