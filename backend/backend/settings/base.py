@@ -290,5 +290,4 @@ GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App
 GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL
 
 MAX_WEEKLY_RA = 5  # The number of RAs for the user to resolve in a week (starting this Monday)
-
 FAKE_GITHUB_REPOS_LIST = True

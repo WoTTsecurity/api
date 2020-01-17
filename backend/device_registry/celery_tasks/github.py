@@ -61,7 +61,11 @@ def list_repos(user_token):
         } for fake_id, full_name, name in [(1, 'fake/fake', 'fake')]}
     elif settings.FAKE_GITHUB_REPOS_LIST is None:
         return None
+<<<<<<< HEAD
     github = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
+=======
+    github = GitHub(paginate=None, sleep_on_ratelimit=False, token=user_token)
+>>>>>>> 433a0a7... Settings: Github tab UI
     logger.info('getting installations...')
     status, body = github.user.installations.get(headers=HEADERS)
     repos = {}
