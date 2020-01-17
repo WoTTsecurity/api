@@ -147,7 +147,8 @@ class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
 class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
-        if None in [settings.GITHUB_APP_ID, settings.GITHUB_APP_PEM, settings.GITHUB_APP_CLIENT_ID,
+        if settings.FAKE_GITHUB_REPOS_LIST is False and \
+                None in [settings.GITHUB_APP_ID, settings.GITHUB_APP_PEM, settings.GITHUB_APP_CLIENT_ID,
                     settings.GITHUB_APP_CLIENT_SECRET, settings.GITHUB_APP_REDIRECT_URL, settings.GITHUB_APP_NAME]:
             context = {'github_authorized': None}
         else:

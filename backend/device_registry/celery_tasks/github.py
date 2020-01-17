@@ -51,6 +51,16 @@ def list_repos(user_token):
     :return: a dict {id: {owner: ..., name: ..., installation: ..., full_name: ...}}
     :raises GithubError
     """
+    if settings.FAKE_GITHUB_REPOS_LIST:
+        return {fake_id: {
+            'full_name': full_name,
+            'url': 'http://github.com/github/github',
+            'name': name,
+            'owner': 'user',
+            'installation': 1234
+        } for fake_id, full_name, name in [(1, 'fake/fake', 'fake')]}
+    elif settings.FAKE_GITHUB_REPOS_LIST is None:
+        return None
     github = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
     logger.info('getting installations...')
     status, body = github.user.installations.get(headers=HEADERS)
