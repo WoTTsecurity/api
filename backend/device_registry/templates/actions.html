@@ -15,14 +15,14 @@
       {% for action in actions %}
         <div class="wott-action" role="alert" wott-action-id="{{ action.action_id }}">
           <div class="full-alert-box mb-3 wott-box-shadow">
-            
+
             <div class="d-flex wott-closed-box align-items-center">
               <div class="recommendation-left-box">
                 <div class="alert-box-text">
                   <div class="d-flex align-items-center justify-content-between mb-0">
                     <span class="alert-title">
                       {{ action.title|safe }}
-                      
+
                       {% if action.issue_url %}
                         <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
                       {% endif %}
@@ -35,8 +35,8 @@
                   </div>
                   <h5 class="alert-instruction mb-0">{{ action.subtitle }}</h5>
                 </div>
-              
-                
+
+
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
                     VIEW DETAILS
@@ -44,7 +44,7 @@
                   </button>
                 </div>
               </div>
-              
+
               <div class="btn-group-box">
                 <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
                     wott-action
@@ -99,7 +99,7 @@
                 </div>
               </div>
             </div>
-            
+
             <section class="wott-open-box mb-4 d-none"
                      wott-action-id="{{ action.action_id }}"
                      wott-action-expanded=false>
@@ -354,7 +354,7 @@
 {% block scripts %}
   {{ block.super }}
   <script>
-   
+
     $('.toggle-ra-button').click((e) => {
       let action_id = $(e.target).attr('wott-action-id'),
           block = $(`.wott-open-box[wott-action-id=${action_id}]`),
@@ -515,6 +515,6 @@
     // Initial count on load
     countAlerts();
 
-  
+
   </script>
 {% endblock scripts %}

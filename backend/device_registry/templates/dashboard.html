@@ -9,7 +9,7 @@
 {% load static %}
 
 {% block admin_content %}
- 
+
 <div class="dashboard-tab">
   <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
           {% if not welcome %}display: none !important;{% endif %}">
@@ -33,7 +33,7 @@
         <h3 class="title-left-box wott-blue">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title wott-font-light-blue">Weekly Progress</div>
-          <div id="week-progress-100">  
+          <div id="week-progress-100">
             <span id="week-progress-var-fake">
               <p class="mb-0" id="week-progres-text">75%</p>
             </span>
@@ -101,7 +101,7 @@
     <section class="right-graphic-container">
       <div class="graph-title">Your Trust Score</div>
       <div class="graph-half-moon">
-  
+
         <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
           <defs>
             <lineargradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -111,11 +111,11 @@
           </defs>
           <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
-          
+
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad3)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle>
-          
+
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
               80
@@ -130,7 +130,7 @@
             </text>
           </g>
         </svg>
-  
+
       </div>
       <div class="graph-footer wott-font-light-blue"><i class="fas fa-sort-down"></i><span> UP</span> 5% OVER THE LAST WEEK</div>
     </section>
@@ -143,7 +143,7 @@
         <h3 class="title-left-box">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
-          <div id="week-progress-100">  
+          <div id="week-progress-100">
             <span id="week-progress-var" style="width: {{ weekly_progress }}%">
               <p class="mb-0" id="week-progres-text" >{{ weekly_progress }}</p>
             </span>
@@ -174,7 +174,7 @@
     <section class="right-graphic-container">
       <div class="graph-title">Your Trust Score</div>
       <div class="graph-half-moon">
-  
+
         <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
           <defs>
             <lineargradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -188,11 +188,11 @@
           </defs>
           <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
-          
+
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
-          
+
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
               {{ trust_score.current }}
@@ -207,7 +207,7 @@
             </text>
           </g>
         </svg>
-  
+
       </div>
       <div class="graph-footer">
         <i class="fas fa-sort-{{ trust_score.arrow }}"></i>

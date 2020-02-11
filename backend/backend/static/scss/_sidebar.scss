@@ -57,7 +57,7 @@
       padding: 13px;
       margin: auto;
       font-size: $font-size-lg;
-      border-radius: $wott-border-radius-lg; 
+      border-radius: $wott-border-radius-lg;
       display: block;
       font-weight: 700;
 
@@ -67,7 +67,7 @@
       }
     }
   }
- 
+
   .sidebar-bottom {
     height: 27vh;
     background-image: linear-gradient(90deg, rgb(238,241,255), rgb(234,238,255));
@@ -77,7 +77,7 @@
     width: $sidebar-width;
     padding: 4.5vh 0;
     border-right: .5px solid #cddef7;
-    
+
     h2 {
       font-size:$font-size-xl;
       padding: 0 25px;
@@ -91,7 +91,7 @@
     .sidebar-bottom-box {
       padding: 2.5vh 1.5rem 1vh;
     }
-  
+
     .sidebar-bottom-item {
       display: flex;
       justify-content: space-between;
@@ -168,7 +168,7 @@ a.sidebar-link {
 .sidebar-dropdown .sidebar-link:hover {
   color: $sidebar-link-child-hover-color;
   background: $sidebar-link-child-hover-bg;
-  
+
 }
 
 .sidebar-item.active > .sidebar-link {

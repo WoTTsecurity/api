@@ -632,7 +632,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         @property
         def key(self):
             return self.urgency, sum([p.devices_count for p in self.packages])
-        
+
         @property
         def severity(self):
             return self.urgencies[self.urgency]

@@ -26,7 +26,7 @@
     @include media-breakpoint-down(lg) {
       padding-left: 3.5rem;
     }
-  } 
+  }
 
   .box-bottom {
     background-color:#f4f6fb;
@@ -54,12 +54,12 @@
   @include media-breakpoint-down(lg) {
     padding-left: 2.75rem;
   }
-} 
+}
 
 #server-container-register {
   position: absolute;
   top: 45%;
-  right: -160px; 
+  right: -160px;
   width: 24%;
   @include mQ(1300px) {
     right: -147px;
@@ -84,7 +84,7 @@
 
 
 #register-container {
-  
+
   .main {
       overflow-y: visible;
   }
