@@ -17,13 +17,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='profile',
             name='payment_plan',
-            field=models.PositiveSmallIntegerField(choices=[(1, 'Free (1 node limit)'),
-                                                            (2, 'Standard (paid per node) with 1 month free trial'),
+            field=models.PositiveSmallIntegerField(choices=[(1, 'Free'),
+                                                            (2, 'Standard'),
                                                             (3, 'Enterprise')], default=1),
         ),
         migrations.AddField(
             model_name='profile',
             name='unlimited_customer',
             field=models.BooleanField(default=False),
-        ),
+        )
     ]

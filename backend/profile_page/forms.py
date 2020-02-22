@@ -43,7 +43,6 @@ class PasswordChangeForm(DjangoPasswordChangeForm):
 
 class ProfileForm(forms.Form):
     username = forms.CharField(disabled=True)
-    email = forms.EmailField()
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=150, required=False)
     company = forms.CharField(max_length=128, required=False)
@@ -70,11 +69,6 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     total_sum = forms.IntegerField(required=False, initial=settings.WOTT_PRICE_PER_NODE, disabled=True,
                                    label="You'll be charged (USD, after the 30 days free trial period end)",
                                    widget=forms.NumberInput(attrs={'placeholder': ''}))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field_name in self.fields:
-            self.fields[field_name].widget.attrs['placeholder'] = ''
 
     def clean(self):
         self._validate_unique = True

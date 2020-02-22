@@ -36,9 +36,8 @@ class ProfileAccountView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTr
     def custom_logic(self, request):
         self.user = request.user
         self.profile = Profile.objects.get_or_create(user=self.user)[0]
-        self.initial_form_data = {'username': self.user.username, 'email': self.user.email,
-                                  'first_name': self.user.first_name, 'last_name': self.user.last_name,
-                                  'company': self.profile.company_name,
+        self.initial_form_data = {'username': self.user.username, 'first_name': self.user.first_name,
+                                  'last_name': self.user.last_name, 'company': self.profile.company_name,
                                   'phone': self.profile.phone}
 
     def get(self, request, *args, **kwargs):
@@ -55,7 +54,7 @@ class ProfileAccountView(LoginRequiredMixin, SyncUserSubscriptionsMixin, LoginTr
             self.user.last_name = form.cleaned_data['last_name']
             self.profile.company_name = form.cleaned_data['company']
             self.profile.phone = form.cleaned_data['phone']
-            self.user.save(update_fields=['email', 'first_name', 'last_name'])
+            self.user.save(update_fields=['first_name', 'last_name'])
             self.profile.save(update_fields=['company_name', 'phone'])
             messages.add_message(self.request, messages.INFO, 'Profile info successfully updated.')
             return HttpResponseRedirect(reverse('profile'))
@@ -459,7 +458,7 @@ class SyncSubscriptionView(LoginRequiredMixin, RedirectView):
     The only purpose of this view is to (silently) sync a newly created subscription's
      local status with Stripe after its 3D Secure protected payment check.
     """
-    url = reverse_lazy('root')
+    url = reverse_lazy('dashboard')
 
     def get(self, request, *args, **kwargs):
         subscription = get_object_or_404(djstripe.models.Subscription, pk=kwargs['pk'],
