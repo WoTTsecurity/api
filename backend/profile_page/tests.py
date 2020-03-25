@@ -139,7 +139,7 @@ class RegistrationViewTests(TestCase):
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user@gmail.com')
-        self.assertInHTML('<h1 class="big-text text-center">Welcome User!</h1>', response.rendered_content)
+        self.assertInHTML('<h1 class="big-text text-center">Welcome, John!</h1>', response.rendered_content)
         # Load the profile page for checking its content.
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
@@ -158,7 +158,7 @@ class RegistrationViewTests(TestCase):
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user@gmail.com')
-        self.assertInHTML('<h1 class="big-text text-center">Welcome User!</h1>', response.rendered_content)
+        self.assertInHTML('<h1 class="big-text text-center">Welcome, John!</h1>', response.rendered_content)
         self.client.logout()
         self.client.login(username='user@gmail.com', password='SomeStrong56_Pass')
         response = self.client.get(reverse('root'))
