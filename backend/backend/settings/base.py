@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
+    'djstripe',
     'profile_page.apps.ProfilePageConfig',
     'monitoring.apps.MonitoringConfig',
     'bootstrap4',
@@ -275,6 +276,10 @@ CELERY_BEAT_SCHEDULE = {
     'sample_history': {
         'task': 'device_registry.tasks.sample_history',
         'schedule': crontab(hour=17, minute=0)  # Execute once a day at 5PM.
+    },
+    'sync_subscriptions': {
+        'task': 'profile_page.tasks.sync_subscriptions',
+        'schedule': crontab(hour='*', minute=0)  # Execute every hour.
     }
 }
 
@@ -288,11 +293,14 @@ REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
 # The following data can be obtained at https://github.com/settings/apps/wott-bot
 GITHUB_APP_PEM = os.getenvb(b'GITHUB_APP_PEM')  # Github app private key, either raw or escape-encoded
-GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
+GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')  # Github App ID
 GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')  # Github app name (wott-bot)
 GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID
-GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Client Secret
-GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL
+GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')  # Github App Client Secret
+GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')  # Github App Redirect URL
 GITHUB_IMMEDIATE_SYNC = False
 
 MAX_WEEKLY_RA = 5  # The number of RAs for the user to resolve in a week (starting this Monday)
+
+# Stripe settings.
+WOTT_PRICE_PER_NODE = 9

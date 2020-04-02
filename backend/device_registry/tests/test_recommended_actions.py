@@ -58,7 +58,7 @@ class GithubActionTest(TestCase):
 
         # The user has one device - no "Enroll your nodes" RA.
         device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
-        device_actions_url = reverse('device_actions', kwargs={'device_pk': device.pk})
+        device_actions_url = reverse('device_actions', kwargs={'pk': device.pk})
 
         # Github integration is not set up - RA is shown at the common actions page.
         response = self.client.get(common_actions_url)
@@ -128,7 +128,7 @@ class GenerateActionsTest(TestCase):
         self.device.generate_recommended_actions(classes)
         self.assertQuerysetEqual(self.device.recommendedactionstatus_set
                                  .filter(ra__action_class__in=[self.TestActionOne.__name__,
-                                                           self.TestActionTwo.__name__])
+                                                               self.TestActionTwo.__name__])
                                  .order_by('ra__action_class')
                                  .values_list('ra__action_class', 'status'),
                                  [(self.TestActionOne.__name__, status_one.value),
@@ -326,7 +326,7 @@ class SnoozeTest(TestCase):
         self._assertHasAction(True)
         self.snooze_action(None)
         self._assertHasAction(False, False)  # Don't generate RAs -> will stay "fixed"
-        self._assertHasAction(True, True)    # Generate RAs -> will be "unfixed" again
+        self._assertHasAction(True, True)  # Generate RAs -> will be "unfixed" again
 
     def test_snooze_interval(self):
         self._assertHasAction(True)
@@ -375,10 +375,10 @@ class TestsMixin:
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
         self.client.login(username='test', password='123')
-        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
+        Profile.objects.create(user=self.user, github_repo_id=1234, github_oauth_token='abcd')
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
-        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        self.device_actions_url = reverse('device_actions', kwargs={'pk': self.device.pk})
         deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
         self.device.deb_packages.add(deb_package)

@@ -22,3 +22,12 @@ IS_DASH = True
 IS_API = True
 IS_MTLS_API = True
 DASH_URL = 'https://example.com'
+
+# Stripe settings.
+STRIPE_LIVE_PUBLIC_KEY = None
+STRIPE_LIVE_SECRET_KEY = None
+STRIPE_TEST_PUBLIC_KEY = None
+STRIPE_TEST_SECRET_KEY = 'sk_test_just_a_random_string'
+DJSTRIPE_WEBHOOK_SECRET = 'whsec_just_a_random_string'
+STRIPE_LIVE_MODE = False
+WOTT_STANDARD_PLAN_ID = None

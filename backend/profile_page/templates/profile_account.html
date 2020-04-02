@@ -4,10 +4,9 @@
 
 {% block profile_content %}
   <div id="profile-tab" class="border-left-0 inner-profile-tab">
-    <form method="POST">
+    <form method="post" action="">
     {% csrf_token %}
-      {% include "form_field.html" with field=form.username asterisk=True %}
-      {% include "form_field.html" with field=form.payment_plan field_class="custom-select" %}
+      {% include "form_field.html" with field=form.username %}
       <div class="d-flex">
         {% include "form_field.html" with field=form.first_name form_group_class="w-50 pr-3" %}
         {% include "form_field.html" with field=form.last_name form_group_class="w-50 pl-3" %}

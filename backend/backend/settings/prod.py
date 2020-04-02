@@ -56,3 +56,12 @@ COMMON_NAME_PREFIX = 'd.wott.local'
 STATIC_URL = 'https://static.wott.io/'
 
 GITHUB_IMMEDIATE_SYNC = True
+
+# Stripe settings.
+STRIPE_LIVE_PUBLIC_KEY = os.getenv('STRIPE_LIVE_PUBLIC_KEY')
+STRIPE_LIVE_SECRET_KEY = os.getenv('STRIPE_LIVE_SECRET_KEY')
+STRIPE_TEST_PUBLIC_KEY = None
+STRIPE_TEST_SECRET_KEY = None
+STRIPE_LIVE_MODE = True
+DJSTRIPE_WEBHOOK_SECRET = os.getenv('DJSTRIPE_WEBHOOK_SECRET')  # Not used, but still required.
+WOTT_STANDARD_PLAN_ID = os.getenv('WOTT_STANDARD_PLAN_ID')  # Monthly with 30d trial.

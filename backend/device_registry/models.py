@@ -136,6 +136,25 @@ class Device(models.Model):
             return self.deviceinfo.default_password
 
     @property
+    def payment_status(self):
+        """
+        Guess if the device is 'free', 'paid' or 'unpaid'.
+        """
+        if self.pk and self.owner:
+            devices = self.owner.devices.order_by('pk')
+            if self.pk == devices[0].pk:
+                return 'free'
+            # For `unlimited` customer all nodes are paid regardless of his subscription status.
+            if hasattr(self.owner, 'profile') and self.owner.profile.unlimited_customer:
+                return 'paid'
+            if hasattr(self.owner, 'profile') and \
+                    self.pk in devices[1:self.owner.profile.paid_nodes_number + 1].values_list('pk', flat=True):
+                return 'paid'
+            else:
+                return 'unpaid'
+        return
+
+    @property
     def eol_info(self):
         """
         Return a dict with an info about current device distro's EOL.
@@ -489,8 +508,8 @@ class Device(models.Model):
         """
 
         # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
-        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
-               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)):
+        if not (self.deb_packages_hash and self.deb_packages.exists() and self.os_release
+                and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)):
             return
 
         # For every CVE name detected for this device, find its maximal urgency among the whole CVE database.
