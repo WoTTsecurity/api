@@ -4,7 +4,6 @@ from enum import IntEnum
 from typing import NamedTuple, List
 from urllib.parse import urljoin
 
-import redis
 from django.conf import settings
 from django.db.models import Q, QuerySet, Max, F
 from django.urls import reverse
@@ -468,25 +467,21 @@ class ActionMeta(type):
 
 # Firewall disabled action.
 class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
+    _severity = Severity.MED
+
     @classmethod
     def _affected_devices(cls, qs):
-        from .models import FirewallState, GlobalPolicy
-        return qs.exclude(
-            (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
-            Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+        from .models import GlobalPolicy
+        return qs.exclude(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK)
 
     @classmethod
     def _is_affected(cls, device) -> bool:
-        from .models import FirewallState, GlobalPolicy
+        from .models import GlobalPolicy
         firewallstate = getattr(device, 'firewallstate', None)
-        return firewallstate is not None and \
-               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK
-                if firewallstate.global_policy is None
-                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
-
-    @classmethod
-    def severity(cls, param=None):
-        return Severity.MED
+        if firewallstate and firewallstate.global_policy and firewallstate.global_policy.policy \
+                == GlobalPolicy.POLICY_BLOCK:
+            return False
+        return True
 
 
 # OS reboot required action.

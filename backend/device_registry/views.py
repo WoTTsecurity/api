@@ -7,10 +7,9 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.db import transaction
 from django.db.models import Case, When, Count, Window, Value, F, Q, IntegerField, Max
 from django.db.models.functions import Round, Coalesce
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
@@ -19,7 +18,7 @@ from django.views.generic import DetailView, ListView, TemplateView, View, Updat
 
 from profile_page.mixins import LoginTrackMixin
 from .api_views import DeviceListFilterMixin
-from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from .forms import ClaimDeviceForm, DeviceAttrsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, Vulnerability
 from .models import GlobalPolicy, RecommendedActionStatus
@@ -176,18 +175,6 @@ class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, Co
         self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
         self.object.save()
         return HttpResponseRedirect(self.get_success_url())
-
-    def get(self, request, *args, **kwargs):
-        if 'pk' in kwargs:
-            device = get_object_or_404(Device, owner=self.request.user, pk=kwargs['pk'])
-            portscan_object, _ = PortScan.objects.get_or_create(device=device)
-            firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
-            if firewallstate_object.global_policy:
-                return HttpResponseForbidden()
-            # TODO: pass networks when we enable this field support.
-            self.initial = {'policy': firewallstate_object.policy,
-                            'ports': self.lists_to_dicts(portscan_object.block_ports)}
-        return super().get(request, *args, **kwargs)
 
 
 class GlobalPolicyEditView(LoginRequiredMixin, LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
@@ -358,7 +345,6 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        has_global_policy = False
 
         try:
             context['firewall'] = self.object.firewallstate
@@ -366,31 +352,16 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
             context['firewall'] = None
         else:
             context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
-            has_global_policy = bool(self.object.firewallstate.global_policy)
-            context['has_global_policy'] = has_global_policy
 
         try:
             context['portscan'] = self.object.portscan
         except PortScan.DoesNotExist:
             context['portscan'] = None
-        else:
-            if not has_global_policy:
-                ports_form_data = self.object.portscan.ports_form_data()
-                context['ports_choices'] = bool(ports_form_data[0])
-                context['choices_extra_data'] = ports_form_data[3]
-                context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
-                                                  initial={'open_ports': ports_form_data[1],
-                                                           'policy': self.object.firewallstate.policy})
-                connections_form_data = self.object.portscan.connections_form_data()
-                context['connections_choices'] = bool(connections_form_data[0])
-                context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
-                                                              initial={'open_connections': connections_form_data[1]})
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         # TODO: handle missing portscan and firewallstate instances.
-        portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
         # Submitted the `FirewallStateGlobalPolicyForm` form.
@@ -400,39 +371,9 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 # TODO: check isn't it enough to do `form.save()` here.
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
-        # Submitted the `PortsForm` form.
-        elif 'is_ports_form' in request.POST:
-            if firewallstate.global_policy:
-                # If some global policy applied to the device - you can't manage its ports.
-                return HttpResponseForbidden()
-            ports_form_data = self.object.portscan.ports_form_data()
-            form = PortsForm(request.POST, ports_choices=ports_form_data[0])
-            if form.is_valid():
-                out_data = []
-                for element in form.cleaned_data['open_ports']:
-                    port_record_index = int(element)
-                    out_data.append(ports_form_data[2][port_record_index])
-                portscan.block_ports = out_data
-                firewallstate.policy = form.cleaned_data['policy']
-                with transaction.atomic():
-                    portscan.save(update_fields=['block_ports'])
-                    firewallstate.save(update_fields=['policy'])
-                    self.object.update_trust_score = True
-                    self.object.save(update_fields=['update_trust_score'])
-        # Submitted the `ConnectionsForm` form.
-        elif 'is_connections_form' in request.POST:
-            if firewallstate.global_policy:
-                # If some global policy applied to the device - you can't manage its connections.
-                return HttpResponseForbidden()
-            connections_form_data = self.object.portscan.connections_form_data()
-            form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
-            if form.is_valid():
-                out_data = []
-                for element in form.cleaned_data['open_connections']:
-                    connection_record_index = int(element)
-                    out_data.append(connections_form_data[2][connection_record_index])
-                portscan.block_networks = out_data
-                portscan.save(update_fields=['block_networks'])
+        # Submitted the removed `PortsForm` form.
+        elif 'is_ports_form' in request.POST or 'is_connections_form' in request.POST:
+            return HttpResponseBadRequest()
 
         self.object.refresh_from_db()
         self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
