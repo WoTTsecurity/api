@@ -71,8 +71,8 @@
     "webpack": "^5.1.1",
     "webpack-bundle-tracker": "0.4.3",
     "webpack-cli": "^4.0.0",
-    "webpack-dev-server": "3.11.0",
-    "snyk": "^1.319.0"
+    "webpack-dev-server": "4.0.0",
+    "snyk": "^1.685.0"
   },
   "scripts": {
     "build": "webpack --config webpack.config.js --progress --colors --stats",
